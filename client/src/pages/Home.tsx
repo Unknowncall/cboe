@@ -1,10 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mountain, MapPin, Compass, Search, ArrowRight, Star, Users, Zap } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const Home: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50">
+    <>
+      <SEOHead
+        title="Chicago Trail Explorer - AI-Powered Hiking Trail Discovery"
+        description="Discover the best hiking trails in Chicago with our AI-powered trail explorer. Get personalized recommendations, detailed trail information, and real-time search results."
+        canonicalUrl="https://chicago-trail-explorer.com/"
+      />
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Background decorative elements */}
@@ -258,6 +265,7 @@ const Home: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

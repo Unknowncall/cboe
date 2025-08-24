@@ -1,9 +1,16 @@
 import React from 'react';
 import { Mountain, Target, Users, Zap, Award, Heart } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const About: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50">
+    <>
+      <SEOHead
+        title="About Us - Chicago Trail Explorer"
+        description="Learn about Chicago Trail Explorer's mission to revolutionize outdoor exploration with AI-powered trail discovery for the Chicago metropolitan area."
+        canonicalUrl="https://chicago-trail-explorer.com/about"
+      />
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 to-blue-600 text-white">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -145,6 +152,7 @@ const About: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

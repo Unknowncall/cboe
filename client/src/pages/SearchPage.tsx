@@ -3,6 +3,7 @@ import SearchForm from '../components/SearchForm';
 import StreamingPanel from '../components/StreamingPanel';
 import ToolTrace from '../components/ToolTrace';
 import TrailList from '../components/TrailList';
+import SEOHead from '../components/SEOHead';
 import { useTrailSearch } from '../hooks/useTrailSearch';
 import { Search } from 'lucide-react';
 
@@ -42,7 +43,13 @@ const SearchPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+    <>
+      <SEOHead
+        title="Search Trails - Chicago Trail Explorer"
+        description="Find your perfect hiking trail in Chicago. Use our AI-powered search to discover trails that match your preferences for difficulty, distance, and features."
+        canonicalUrl="https://chicago-trail-explorer.com/search"
+      />
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50 relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-green-200/20 to-transparent rounded-full blur-3xl"></div>
@@ -99,7 +106,8 @@ const SearchPage: React.FC = () => {
           <TrailList trails={trails} />
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
