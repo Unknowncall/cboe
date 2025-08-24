@@ -77,10 +77,9 @@ const SearchForm: React.FC<SearchFormProps> = ({
 
 	const exampleQueries = [
 		"Easy loop trail under 3 miles with lake views near Chicago",
-		"Moderate out and back trail with waterfall and forest features",
-		"Dog-friendly trail with boardwalk and urban access",
+		"Moderate out and back trail with waterfall and forest features near Chicago",
+		"Dog-friendly trail with boardwalk and urban access in Illinois",
 		"Short trail under 2 miles with minimal elevation gain for families",
-		"Hard difficulty trail with over 200 ft elevation gain and canyon views",
 		"Prairie trail with wildflowers and hills near Chicago suburbs"
 	];
 

@@ -19,19 +19,16 @@ function App() {
 		setShowToolTrace,
 		isStreaming,
 		requestId,
-		expandedTrails,
-		trailDetails,
 		availableAgents,
 		selectedAgent,
 		setSelectedAgent,
 		handleSubmit,
-		toggleTrailDetails,
 		cancelStreaming,
 	} = useTrailSearch();
 
 	return (
 		<ErrorBoundary>
-			<div className="min-h-screen bg-gray-50 p-4">
+			<div className="min-h-screen p-4">
 				<div className="max-w-4xl mx-auto">
 					<Header />
 
