@@ -1,0 +1,28 @@
+{
+	"name": "cboe",
+	"version": "1.0.0",
+	"description": "CBOE full-stack application with Python FastAPI backend and React frontend",
+	"scripts": {
+		"dev": "concurrently \"npm run server\" \"npm run client\"",
+		"server": "cd server && source venv/bin/activate && python main.py",
+		"client": "cd client && npm run dev",
+		"install:server": "cd server && pip install -r requirements.txt",
+		"install:client": "cd client && npm install",
+		"install:all": "npm run install:server && npm run install:client",
+		"build:client": "cd client && npm run build",
+		"start:prod": "concurrently \"cd server && source venv/bin/activate && python main.py\" \"cd client && npm run preview\""
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "^4.1.12",
+		"concurrently": "^8.2.2"
+	},
+	"keywords": [
+		"fastapi",
+		"react",
+		"vite",
+		"tailwind",
+		"shadcn"
+	],
+	"author": "",
+	"license": "MIT"
+}
