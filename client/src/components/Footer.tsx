@@ -18,7 +18,7 @@ const Footer: React.FC = () => {
 							</span>
 						</div>
 						<p className="text-slate-300 mb-4 max-w-md">
-							Discover your next adventure with AI-powered trail recommendations. 
+							Discover your next adventure with AI-powered trail recommendations.
 							Find the perfect hiking experience tailored to your preferences in the Chicago area.
 						</p>
 						<div className="flex items-center gap-1 text-sm text-slate-400">
@@ -92,15 +92,15 @@ const Footer: React.FC = () => {
 						<div className="flex items-center gap-4 text-sm text-slate-400">
 							<span>Privacy Policy</span>
 							<span>•</span>
-						<span>Terms of Service</span>
-						<span>•</span>
-						<span>Get out there and explore! 🏔️</span>
+							<span>Terms of Service</span>
+							<span>•</span>
+							<span>Get out there and explore! 🏔️</span>
+						</div>
 					</div>
 				</div>
 			</div>
-		</div>
-	</footer>
-);
+		</footer>
+	);
 };
 
 export default Footer;
