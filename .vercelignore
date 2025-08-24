@@ -1,0 +1,66 @@
+# Development files
+*.log
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependencies
+node_modules/
+server/__pycache__/
+server/**/__pycache__/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker files (not needed for Vercel)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation (except essential ones)
+README.md
+DOCKER.md
+CODE_HEALTH_REPORT.md
+COMPLIANCE.md
+
+# Build artifacts that will be recreated
+client/dist/
+client/node_modules/
+
+# Database files (will be replaced with cloud DB)
+*.db
+*.db-shm
+*.db-wal
+
+# Scripts not needed in production
+start-*.sh
+setup*.sh
+install-*.sh
+docker.sh
+
+# Server directory (code is in /api for Vercel)
+# Keep server/ but exclude some files
+server/venv/
+server/trail_search.log
+server/test_*.py
+
+# Large dependencies (will be installed fresh)
+server/agents/__pycache__/
