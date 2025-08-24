@@ -17,8 +17,10 @@ load_dotenv()
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+import os
 
 # Import our modular components
 from config import (
@@ -68,6 +70,26 @@ app.add_middleware(
 
 # Add request size limit middleware for security
 app.add_middleware(RequestSizeLimitMiddleware, max_size=MAX_REQUEST_SIZE)
+
+# Mount static files for serving the React frontend
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    
+    # Serve React app for any route that doesn't match API routes
+    @app.get("/{full_path:path}")
+    async def serve_react_app(full_path: str):
+        """Serve React app for all non-API routes"""
+        # Don't serve React for API routes
+        if full_path.startswith("api/") or full_path.startswith("health") or full_path.startswith("docs") or full_path.startswith("openapi"):
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # Serve index.html for all other routes (React Router will handle routing)
+        index_file = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+        else:
+            raise HTTPException(status_code=404, detail="Frontend not found")
 
 # Global error handler
 @app.exception_handler(HTTPException)
