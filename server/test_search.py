@@ -11,7 +11,7 @@ def test_search():
     
     # Parse the problematic query
     text_parser = trail_searcher.text_parser
-    filters = text_parser.parse_user_input('Easy loop under 8 km with waterfall near Chicago')
+    filters = text_parser.parse_user_input('Easy loop under 5 miles with waterfall near Chicago')
     
     print(f"Parsed filters:")
     print(f"  Difficulty: {filters.difficulty}")
@@ -50,7 +50,7 @@ def test_search():
     # Test the full search method
     print("\n=== Full Search Method ===")
     try:
-        final_results = trail_searcher.search_trails('Easy loop under 8 km with waterfall near Chicago', filters, 'test')
+        final_results = trail_searcher.search_trails('Easy loop under 5 miles with waterfall near Chicago', filters, 'test')
         print(f"Final search results: {len(final_results)}")
         
         if final_results:

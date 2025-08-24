@@ -154,12 +154,13 @@ async def generate_stream_response(request_id: str, message: str, agent_type: st
                 # Capture trails for final response
                 trails = chunk["trails"]
                 
-                # Add tool trace for search operation
-                tool_traces.append({
-                    'tool': 'ai_agent_search',
-                    'duration_ms': 0,  # Will be calculated by agent
-                    'result_count': len(trails)
-                })
+            elif chunk["type"] == "tool_trace":
+                # Capture detailed tool trace from AI agent
+                tool_trace_data = chunk["tool_trace"]
+                tool_traces.append(tool_trace_data)
+                
+                # Also stream the tool trace for real-time display
+                yield f"data: {json.dumps(chunk)}\n\n"
                 
             elif chunk["type"] == "error":
                 # Handle agent errors

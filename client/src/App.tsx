@@ -1,73 +1,28 @@
-import Header from './components/Header';
-import Footer from './components/Footer';
-import SearchForm from './components/SearchForm';
-import StreamingPanel from './components/StreamingPanel';
-import ToolTrace from './components/ToolTrace';
-import TrailList from './components/TrailList';
-import ErrorBoundary from './components/ErrorBoundary';
-import { useTrailSearch } from './hooks/useTrailSearch';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
+import Home from './pages/Home';
+import SearchPage from './pages/SearchPage';
+import About from './pages/About';
+import FAQ from './pages/FAQ';
+import Contact from './pages/Contact';
+import NotFound from './pages/NotFound';
 import './App.css';
 
 function App() {
-	const {
-		message,
-		setMessage,
-		streamContent,
-		trails,
-		toolTraces,
-		showToolTrace,
-		setShowToolTrace,
-		isStreaming,
-		requestId,
-		availableAgents,
-		selectedAgent,
-		setSelectedAgent,
-		handleSubmit,
-		cancelStreaming,
-	} = useTrailSearch();
-
-	return (
-		<ErrorBoundary>
-			<div className="min-h-screen p-4">
-				<div className="max-w-4xl mx-auto">
-					<Header />
-
-					<SearchForm
-						message={message}
-						setMessage={setMessage}
-						onSubmit={handleSubmit}
-						isStreaming={isStreaming}
-						showToolTrace={showToolTrace}
-						setShowToolTrace={setShowToolTrace}
-						availableAgents={availableAgents}
-						selectedAgent={selectedAgent}
-						setSelectedAgent={setSelectedAgent}
-					/>
-
-					{/* Request ID */}
-					{requestId && (
-						<div className="mb-4 text-sm text-gray-500">
-							Request ID: {requestId}
-						</div>
-					)}
-
-					<StreamingPanel
-						streamContent={streamContent}
-						isStreaming={isStreaming}
-						onCancel={cancelStreaming}
-					/>
-
-					<ToolTrace toolTraces={toolTraces} showToolTrace={showToolTrace} />
-
-					<TrailList
-						trails={trails}
-					/>
-
-					<Footer />
-				</div>
-			</div>
-		</ErrorBoundary>
-	);
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="search" element={<SearchPage />} />
+          <Route path="about" element={<About />} />
+          <Route path="faq" element={<FAQ />} />
+          <Route path="contact" element={<Contact />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;

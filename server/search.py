@@ -100,7 +100,12 @@ class TrailSearcher:
                 if filters.distance_cap_miles:
                     base_sql += " AND t.distance_km <= ?"
                     params.append(miles_to_km(filters.distance_cap_miles))
-                    logger.debug(f"Added distance filter: <= {filters.distance_cap_miles} miles ({miles_to_km(filters.distance_cap_miles):.2f} km)")
+                    logger.debug(f"Added max distance filter: <= {filters.distance_cap_miles} miles ({miles_to_km(filters.distance_cap_miles):.2f} km)")
+                
+                if filters.distance_min_miles:
+                    base_sql += " AND t.distance_km >= ?"
+                    params.append(miles_to_km(filters.distance_min_miles))
+                    logger.debug(f"Added min distance filter: >= {filters.distance_min_miles} miles ({miles_to_km(filters.distance_min_miles):.2f} km)")
                 
                 if filters.elevation_cap_m:
                     base_sql += " AND t.elevation_gain_m <= ?"
@@ -116,6 +121,106 @@ class TrailSearcher:
                     base_sql += " AND t.route_type = ?"
                     params.append(filters.route_type)
                     logger.debug(f"Added route type filter: {filters.route_type}")
+                
+                # Location filters
+                if filters.city:
+                    base_sql += " AND LOWER(t.city) LIKE ?"
+                    params.append(f"%{filters.city.lower()}%")
+                    logger.debug(f"Added city filter: {filters.city}")
+                
+                if filters.county:
+                    base_sql += " AND LOWER(t.county) LIKE ?"
+                    params.append(f"%{filters.county.lower()}%")
+                    logger.debug(f"Added county filter: {filters.county}")
+                
+                if filters.state:
+                    base_sql += " AND LOWER(t.state) LIKE ?"
+                    params.append(f"%{filters.state.lower()}%")
+                    logger.debug(f"Added state filter: {filters.state}")
+                
+                if filters.region:
+                    base_sql += " AND LOWER(t.region) LIKE ?"
+                    params.append(f"%{filters.region.lower()}%")
+                    logger.debug(f"Added region filter: {filters.region}")
+                
+                # Amenity filters
+                if filters.parking_available is not None:
+                    base_sql += " AND t.parking_available = ?"
+                    params.append(filters.parking_available)
+                    logger.debug(f"Added parking availability filter: {filters.parking_available}")
+                
+                if filters.parking_type:
+                    base_sql += " AND t.parking_type = ?"
+                    params.append(filters.parking_type)
+                    logger.debug(f"Added parking type filter: {filters.parking_type}")
+                
+                if filters.restrooms is not None:
+                    base_sql += " AND t.restrooms = ?"
+                    params.append(filters.restrooms)
+                    logger.debug(f"Added restrooms filter: {filters.restrooms}")
+                
+                if filters.water_available is not None:
+                    base_sql += " AND t.water_available = ?"
+                    params.append(filters.water_available)
+                    logger.debug(f"Added water availability filter: {filters.water_available}")
+                
+                if filters.picnic_areas is not None:
+                    base_sql += " AND t.picnic_areas = ?"
+                    params.append(filters.picnic_areas)
+                    logger.debug(f"Added picnic areas filter: {filters.picnic_areas}")
+                
+                if filters.camping_available is not None:
+                    base_sql += " AND t.camping_available = ?"
+                    params.append(filters.camping_available)
+                    logger.debug(f"Added camping availability filter: {filters.camping_available}")
+                
+                # Access and permit filters
+                if filters.entry_fee is not None:
+                    base_sql += " AND t.entry_fee = ?"
+                    params.append(filters.entry_fee)
+                    logger.debug(f"Added entry fee filter: {filters.entry_fee}")
+                
+                if filters.permit_required is not None:
+                    base_sql += " AND t.permit_required = ?"
+                    params.append(filters.permit_required)
+                    logger.debug(f"Added permit required filter: {filters.permit_required}")
+                
+                if filters.seasonal_access:
+                    base_sql += " AND t.seasonal_access = ?"
+                    params.append(filters.seasonal_access)
+                    logger.debug(f"Added seasonal access filter: {filters.seasonal_access}")
+                
+                if filters.accessibility:
+                    base_sql += " AND t.accessibility = ?"
+                    params.append(filters.accessibility)
+                    logger.debug(f"Added accessibility filter: {filters.accessibility}")
+                
+                # Trail characteristics
+                if filters.surface_type:
+                    base_sql += " AND t.surface_type = ?"
+                    params.append(filters.surface_type)
+                    logger.debug(f"Added surface type filter: {filters.surface_type}")
+                
+                if filters.trail_markers is not None:
+                    base_sql += " AND t.trail_markers = ?"
+                    params.append(filters.trail_markers)
+                    logger.debug(f"Added trail markers filter: {filters.trail_markers}")
+                
+                if filters.loop_trail is not None:
+                    base_sql += " AND t.loop_trail = ?"
+                    params.append(filters.loop_trail)
+                    logger.debug(f"Added loop trail filter: {filters.loop_trail}")
+                
+                if filters.managing_agency:
+                    base_sql += " AND LOWER(t.managing_agency) LIKE ?"
+                    params.append(f"%{filters.managing_agency.lower()}%")
+                    logger.debug(f"Added managing agency filter: {filters.managing_agency}")
+                
+                # Difficulty filter - when specified, only show trails of that difficulty
+                if filters.difficulty:
+                    base_sql += " AND t.difficulty = ?"
+                    params.append(filters.difficulty)
+                    logger.debug(f"Added difficulty filter: {filters.difficulty}")
                 
                 # Feature matching with variations (at least one must match)
                 if filters.features:
@@ -252,7 +357,38 @@ class TrailSearcher:
                 'longitude': row['longitude'],
                 'description_snippet': truncate_description(row['description']),
                 'score': row.get('rank_score', 0),
-                'why': "Matches: " + ", ".join(why_parts) if why_parts else "Matches search criteria"
+                'why': "Matches: " + ", ".join(why_parts) if why_parts else "Matches search criteria",
+                
+                # Enhanced location information
+                'city': row.get('city'),
+                'county': row.get('county'),
+                'state': row.get('state'),
+                'region': row.get('region'),
+                'country': row.get('country'),
+                
+                # Amenities and access information
+                'parking_available': bool(row.get('parking_available')) if row.get('parking_available') is not None else None,
+                'parking_type': row.get('parking_type'),
+                'restrooms': bool(row.get('restrooms')) if row.get('restrooms') is not None else None,
+                'water_available': bool(row.get('water_available')) if row.get('water_available') is not None else None,
+                'picnic_areas': bool(row.get('picnic_areas')) if row.get('picnic_areas') is not None else None,
+                'camping_available': bool(row.get('camping_available')) if row.get('camping_available') is not None else None,
+                
+                # Access and permit information
+                'entry_fee': bool(row.get('entry_fee')) if row.get('entry_fee') is not None else None,
+                'permit_required': bool(row.get('permit_required')) if row.get('permit_required') is not None else None,
+                'seasonal_access': row.get('seasonal_access'),
+                'accessibility': row.get('accessibility'),
+                
+                # Trail characteristics
+                'surface_type': row.get('surface_type'),
+                'trail_markers': bool(row.get('trail_markers')) if row.get('trail_markers') is not None else None,
+                'loop_trail': bool(row.get('loop_trail')) if row.get('loop_trail') is not None else None,
+                
+                # Contact and website
+                'managing_agency': row.get('managing_agency'),
+                'website_url': row.get('website_url'),
+                'phone_number': row.get('phone_number')
             }
             
             # Add distance from center if available

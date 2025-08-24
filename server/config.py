@@ -35,7 +35,7 @@ DEFAULT_RADIUS_MILES = 37.3  # ~60 km converted to miles
 
 # Search Configuration
 MAX_RESULTS = int(os.getenv("MAX_SEARCH_RESULTS", "20"))
-TOP_RESULTS_LIMIT = 5
+TOP_RESULTS_LIMIT = 100
 
 # Streaming Configuration
 WORDS_PER_CHUNK = int(os.getenv("WORDS_PER_CHUNK", "3"))

@@ -135,7 +135,15 @@ class TrailSearchAgent:
                             },
                             "max_distance_miles": {
                                 "type": "number",
-                                "description": "Maximum trail length in miles if specified"
+                                "description": "Maximum trail length in miles. ONLY use this when the user explicitly says 'under X miles', 'less than X miles', 'max X miles', 'no more than X miles', 'shorter than X miles', 'below X miles', etc. This sets an UPPER BOUND - trails must be this distance or shorter. DO NOT use for 'greater than' or 'more than' queries."
+                            },
+                            "min_distance_miles": {
+                                "type": "number",
+                                "description": "Minimum trail length in miles. Use this when the user says 'more than X miles', 'over X miles', 'at least X miles', 'longer than X miles', 'greater than X miles', 'bigger than X miles', 'above X miles', etc. This sets a LOWER BOUND - trails must be this distance or longer."
+                            },
+                            "target_distance_miles": {
+                                "type": "number",
+                                "description": "Target/preferred trail length in miles. Use this when the user says 'X miles long', 'around X miles', 'approximately X miles', 'about X miles', 'exactly X miles', etc. This is the most common case."
                             },
                             "max_elevation_gain_m": {
                                 "type": "number",
@@ -194,10 +202,15 @@ Key responsibilities:
 When users ask about trails:
 1. Extract ALL relevant criteria from their query including:
    - Difficulty level (easy/moderate/hard)
-   - Distance preferences (if they mention "under X miles" or similar)
+   - Distance preferences: 
+     * Use target_distance_miles when users say "X miles long", "around X miles", "about X miles", "approximately X miles", "exactly X miles"
+     * Use max_distance_miles ONLY when users say "under X miles", "less than X miles", "max X miles", "no more than X miles"
+     * Use min_distance_miles when users say "more than X miles", "over X miles", "at least X miles", "longer than X miles"
    - Location preferences (near Chicago, etc.)
    - Trail features (scenic, waterfall, lake, forest, prairie, views, etc.)
    - Dog policy (if they mention bringing/taking their dog, wanting dog-friendly trails)
+
+IMPORTANT: When someone says "I want a trail that is 5 miles long" they mean they want trails that are approximately 5 miles, NOT trails under 5 miles. Use target_distance_miles for this.
    - Route type (loop vs out and back)
    - Elevation preferences
    - Search radius
@@ -344,6 +357,15 @@ Always be encouraging and helpful, even if search results are limited."""
             # Use AI-extracted parameters as the only source
             if "max_distance_miles" in args:
                 filters.distance_cap_miles = args["max_distance_miles"]
+            if "min_distance_miles" in args:
+                filters.distance_min_miles = args["min_distance_miles"]
+            if "target_distance_miles" in args:
+                # For target distance, we want trails within a reasonable range (±25%)
+                target = args["target_distance_miles"]
+                tolerance = max(0.5, target * 0.25)  # At least 0.5 miles tolerance, or 25% of target
+                filters.distance_min_miles = max(0, target - tolerance)
+                filters.distance_cap_miles = target + tolerance
+                logger.info(f"Target distance {target} miles, searching {filters.distance_min_miles:.1f}-{filters.distance_cap_miles:.1f} miles (Request: {request_id})")
             if "max_elevation_gain_m" in args:
                 filters.elevation_cap_m = args["max_elevation_gain_m"]
             if "difficulty" in args:
@@ -393,8 +415,14 @@ Always be encouraging and helpful, even if search results are limited."""
             if search_args.get("difficulty"):
                 summary_parts.append(f"All are {search_args['difficulty']} difficulty level.")
             
-            if search_args.get("max_distance_miles"):
+            if search_args.get("target_distance_miles"):
+                summary_parts.append(f"All are around {search_args['target_distance_miles']} miles long.")
+            elif search_args.get("max_distance_miles") and search_args.get("min_distance_miles"):
+                summary_parts.append(f"All are between {search_args['min_distance_miles']} and {search_args['max_distance_miles']} miles long.")
+            elif search_args.get("max_distance_miles"):
                 summary_parts.append(f"All are under {search_args['max_distance_miles']} miles long.")
+            elif search_args.get("min_distance_miles"):
+                summary_parts.append(f"All are over {search_args['min_distance_miles']} miles long.")
             
             if search_args.get("features"):
                 features_str = ", ".join(search_args["features"])

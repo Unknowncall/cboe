@@ -39,7 +39,7 @@ logger = logging.getLogger("trail_search.langchain_agent")
 
 if LANGCHAIN_AVAILABLE:
     class TrailSearchInput(BaseModel):
-        """Input schema for trail search tool"""
+        """Input schema for trail search tool with enhanced filtering capabilities"""
         query: str = Field(description="The user's natural language query about trails")
         location: Optional[str] = Field(None, description="Location or city name to search near (e.g., 'Chicago', 'near Chicago')")
         max_distance_miles: Optional[float] = Field(None, description="Maximum trail length in miles if specified")
@@ -49,18 +49,52 @@ if LANGCHAIN_AVAILABLE:
         dogs_allowed: Optional[bool] = Field(None, description="Whether dogs are allowed/wanted on the trail. True if user mentions bringing/taking their dog, wants dog-friendly trails, etc.")
         features: Optional[List[str]] = Field(None, description="Desired trail features extracted from the query like 'waterfall', 'lake', 'scenic', 'views', 'forest', 'prairie', 'beach', 'canyon', 'historic', etc.")
         radius_miles: Optional[float] = Field(None, description="Search radius in miles from the specified location if mentioned")
+        
+        # Enhanced location filters
+        city: Optional[str] = Field(None, description="Specific city name if mentioned (e.g., 'Chicago', 'Milwaukee')")
+        county: Optional[str] = Field(None, description="County name if mentioned (e.g., 'Cook County', 'DuPage County')")
+        state: Optional[str] = Field(None, description="State name if mentioned (e.g., 'Illinois', 'Wisconsin', 'Michigan')")
+        region: Optional[str] = Field(None, description="Region name if mentioned (e.g., 'Great Lakes', 'Chicago Metropolitan')")
+        
+        # Amenity filters
+        parking_available: Optional[bool] = Field(None, description="True if user specifically mentions needing parking available")
+        parking_type: Optional[str] = Field(None, description="Type of parking if specified (free, paid, limited, street parking)")
+        restrooms: Optional[bool] = Field(None, description="True if user specifically mentions needing restrooms/facilities")
+        water_available: Optional[bool] = Field(None, description="True if user mentions needing water fountains or water availability")
+        picnic_areas: Optional[bool] = Field(None, description="True if user mentions wanting picnic areas or tables")
+        camping_available: Optional[bool] = Field(None, description="True if user mentions camping or overnight stays")
+        
+        # Access and permit filters
+        entry_fee: Optional[bool] = Field(None, description="True if user is okay with entry fees, False if they want free trails or mention no fees")
+        permit_required: Optional[bool] = Field(None, description="True if user is okay with permits, False if they want no permit required")
+        seasonal_access: Optional[str] = Field(None, description="Seasonal access preference if mentioned (year-round, seasonal, summer, winter)")
+        accessibility: Optional[str] = Field(None, description="Accessibility requirements if mentioned (wheelchair, stroller, none)")
+        
+        # Trail characteristics
+        surface_type: Optional[str] = Field(None, description="Preferred trail surface type if mentioned (paved, gravel, dirt, boardwalk, mixed)")
+        trail_markers: Optional[bool] = Field(None, description="True if user mentions wanting well-marked trails or good signage")
+        loop_trail: Optional[bool] = Field(None, description="True if user specifically wants loop trails, False if they prefer out-and-back")
+        managing_agency: Optional[str] = Field(None, description="Managing agency or park system if mentioned (e.g., 'National Park Service', 'Illinois State Parks', 'Chicago Park District')")
+
+    class GetAllTrailsInput(BaseModel):
+        """Input schema for get all trails tool"""
+        query: str = Field(description="The user's natural language query")
+        area_filter: Optional[str] = Field(None, description="Optional area name to filter trails by (e.g., 'Chicago', 'Illinois', 'Cook County'). Extract from user query if they mention a specific area.")
+        limit: Optional[int] = Field(50, description="Maximum number of trails to return (default: 50, max: 100)")
 
     class TrailSearchTool(BaseTool):
         """LangChain tool for trail search functionality"""
         name: str = "search_trails"
-        description: str = """Search for hiking trails based on user criteria like location, difficulty, distance, and features. Extract all relevant parameters from the user's natural language query including:
-        - Location or city name to search near (e.g., 'Chicago', 'near Chicago')  
-        - Maximum trail length in miles if specified
-        - Maximum elevation gain in meters if specified
-        - Trail difficulty level (easy/moderate/hard)
-        - Type of trail route (loop/out and back)
+        description: str = """Search for hiking trails based on comprehensive user criteria including location, difficulty, distance, features, amenities, accessibility, and costs. Extract all relevant parameters from the user's natural language query including:
+        - Location (city, county, state, region) to search near
+        - Maximum trail length in miles and elevation gain
+        - Trail difficulty level (easy/moderate/hard) and route type (loop/out and back)
         - Whether dogs are allowed/wanted
         - Desired trail features like 'waterfall', 'lake', 'scenic', 'views', 'forest', 'prairie', 'beach', 'canyon', 'historic'
+        - Amenities: parking availability/type, restrooms, water fountains, picnic areas, camping
+        - Accessibility requirements: wheelchair accessible, stroller friendly, surface type (paved/gravel/dirt/boardwalk)
+        - Cost preferences: free trails vs. entry fees, permit requirements
+        - Managing agency preferences: National Park Service, state parks, local parks
         - Search radius in miles from the specified location"""
         args_schema: type = TrailSearchInput
         agent_instance: Any = Field(default=None, exclude=True)
@@ -70,14 +104,25 @@ if LANGCHAIN_AVAILABLE:
         
         def _run(self, query: str, location: str = None, max_distance_miles: float = None, 
                  max_elevation_gain_m: float = None, difficulty: str = None, route_type: str = None,
-                 dogs_allowed: bool = None, features: List[str] = None, radius_miles: float = None, **kwargs) -> str:
+                 dogs_allowed: bool = None, features: List[str] = None, radius_miles: float = None,
+                 city: str = None, county: str = None, state: str = None, region: str = None,
+                 parking_available: bool = None, parking_type: str = None, restrooms: bool = None,
+                 water_available: bool = None, picnic_areas: bool = None, camping_available: bool = None,
+                 entry_fee: bool = None, permit_required: bool = None, seasonal_access: str = None,
+                 accessibility: str = None, surface_type: str = None, trail_markers: bool = None,
+                 loop_trail: bool = None, managing_agency: str = None, **kwargs) -> str:
             """Execute trail search with LangChain's enhanced reasoning"""
             try:
-                logger.info(f"LangChain tool executing search with enhanced reasoning: {query}")
+                logger.info(f"LangChain tool executing enhanced search with comprehensive filtering: {query}")
                 
                 # Use LangChain's reasoning to provide better parameter interpretation
-                trails = self._execute_search_with_reasoning(query, location, max_distance_miles, max_elevation_gain_m, 
-                                                           difficulty, route_type, dogs_allowed, features, radius_miles)
+                trails = self._execute_search_with_reasoning(
+                    query, location, max_distance_miles, max_elevation_gain_m, difficulty, route_type, 
+                    dogs_allowed, features, radius_miles, city, county, state, region,
+                    parking_available, parking_type, restrooms, water_available, picnic_areas, 
+                    camping_available, entry_fee, permit_required, seasonal_access, accessibility,
+                    surface_type, trail_markers, loop_trail, managing_agency
+                )
                 
                 if self.agent_instance:
                     self.agent_instance.last_trails = trails
@@ -89,14 +134,45 @@ if LANGCHAIN_AVAILABLE:
                     analysis_parts.append(f"✅ Search completed! I analyzed your request and found {len(trails)} trails.")
                     
                     # Add reasoning about the search strategy
-                    if location:
-                        analysis_parts.append(f"🗺️ I focused on the {location} area as you specified.")
+                    if location or city or county or state:
+                        location_parts = []
+                        if location: location_parts.append(location)
+                        if city: location_parts.append(city)
+                        if county: location_parts.append(county)
+                        if state: location_parts.append(state)
+                        location_str = ", ".join(location_parts)
+                        analysis_parts.append(f"🗺️ I focused on the {location_str} area as you specified.")
                     
                     if difficulty:
                         analysis_parts.append(f"⚡ I filtered for {difficulty} difficulty trails to match your fitness level.")
                     
                     if max_distance_miles:
                         analysis_parts.append(f"📏 I limited results to trails under {max_distance_miles} miles as requested.")
+                    
+                    if entry_fee is False:
+                        analysis_parts.append(f"💲 I ensured all trails are free as you requested.")
+                    elif entry_fee is True:
+                        analysis_parts.append(f"💰 I included trails with entry fees that offer premium amenities.")
+                    
+                    amenity_features = []
+                    if parking_available: amenity_features.append("parking")
+                    if restrooms: amenity_features.append("restrooms")
+                    if water_available: amenity_features.append("water fountains")
+                    if picnic_areas: amenity_features.append("picnic areas")
+                    if camping_available: amenity_features.append("camping")
+                    
+                    if amenity_features:
+                        analysis_parts.append(f"🏪 I filtered for trails with these amenities: {', '.join(amenity_features)}.")
+                    
+                    if accessibility:
+                        accessibility_text = {"wheelchair": "wheelchair accessible", "stroller": "stroller friendly"}.get(accessibility, accessibility)
+                        analysis_parts.append(f"♿ I ensured all trails are {accessibility_text} as requested.")
+                    
+                    if surface_type:
+                        analysis_parts.append(f"🛤️ I focused on {surface_type} trails for your preferred surface type.")
+                    
+                    if managing_agency:
+                        analysis_parts.append(f"🏛️ I limited results to {managing_agency} managed trails.")
                         
                     if features:
                         features_str = ", ".join(features)
@@ -105,7 +181,7 @@ if LANGCHAIN_AVAILABLE:
                     if dogs_allowed:
                         analysis_parts.append(f"🐕 I made sure all trails welcome your furry companion!")
                     
-                    analysis_parts.append("\n🎯 Each result has been carefully selected based on your specific criteria.")
+                    analysis_parts.append("\n🎯 Each result has been carefully selected based on your comprehensive criteria.")
                     
                     return "\n".join(analysis_parts)
                 else:
@@ -124,13 +200,19 @@ if LANGCHAIN_AVAILABLE:
         
         def _execute_search_with_reasoning(self, query: str, location: str = None, max_distance_miles: float = None, 
                                           max_elevation_gain_m: float = None, difficulty: str = None, route_type: str = None,
-                                          dogs_allowed: bool = None, features: List[str] = None, radius_miles: float = None) -> List[Dict[str, Any]]:
-            """Execute trail search with enhanced LangChain reasoning and parameter optimization"""
+                                          dogs_allowed: bool = None, features: List[str] = None, radius_miles: float = None,
+                                          city: str = None, county: str = None, state: str = None, region: str = None,
+                                          parking_available: bool = None, parking_type: str = None, restrooms: bool = None,
+                                          water_available: bool = None, picnic_areas: bool = None, camping_available: bool = None,
+                                          entry_fee: bool = None, permit_required: bool = None, seasonal_access: str = None,
+                                          accessibility: str = None, surface_type: str = None, trail_markers: bool = None,
+                                          loop_trail: bool = None, managing_agency: str = None) -> List[Dict[str, Any]]:
+            """Execute trail search with enhanced LangChain reasoning and comprehensive parameter optimization"""
             
             # Build filters with LangChain's enhanced interpretation
             filters = ParsedFilters()
             
-            # Apply parameters with smart defaults based on reasoning
+            # Apply basic parameters with smart defaults based on reasoning
             if max_distance_miles:
                 filters.distance_cap_miles = max_distance_miles
             elif any(word in query.lower() for word in ["short", "quick", "easy walk"]):
@@ -148,15 +230,90 @@ if LANGCHAIN_AVAILABLE:
             
             if route_type:
                 filters.route_type = route_type
-            elif "loop" in query.lower():
+            elif loop_trail is True or "loop" in query.lower():
                 filters.route_type = "loop"
                 logger.info("LangChain reasoning: Detected loop preference from query")
+            elif loop_trail is False:
+                filters.route_type = "out and back"
+                logger.info("LangChain reasoning: Detected out-and-back preference")
             
             if dogs_allowed is not None:
                 filters.dogs_allowed = dogs_allowed
             
             if features:
                 filters.features = features
+            
+            # Enhanced location filters
+            if city:
+                filters.city = city
+                logger.info(f"LangChain reasoning: Filtering by city: {city}")
+            
+            if county:
+                filters.county = county
+                logger.info(f"LangChain reasoning: Filtering by county: {county}")
+            
+            if state:
+                filters.state = state
+                logger.info(f"LangChain reasoning: Filtering by state: {state}")
+            
+            if region:
+                filters.region = region
+                logger.info(f"LangChain reasoning: Filtering by region: {region}")
+            
+            # Amenity filters
+            if parking_available is not None:
+                filters.parking_available = parking_available
+                logger.info(f"LangChain reasoning: Parking requirement: {parking_available}")
+            
+            if parking_type:
+                filters.parking_type = parking_type
+                logger.info(f"LangChain reasoning: Parking type preference: {parking_type}")
+            
+            if restrooms is not None:
+                filters.restrooms = restrooms
+                logger.info(f"LangChain reasoning: Restroom requirement: {restrooms}")
+            
+            if water_available is not None:
+                filters.water_available = water_available
+                logger.info(f"LangChain reasoning: Water availability requirement: {water_available}")
+            
+            if picnic_areas is not None:
+                filters.picnic_areas = picnic_areas
+                logger.info(f"LangChain reasoning: Picnic area requirement: {picnic_areas}")
+            
+            if camping_available is not None:
+                filters.camping_available = camping_available
+                logger.info(f"LangChain reasoning: Camping availability requirement: {camping_available}")
+            
+            # Access and permit filters
+            if entry_fee is not None:
+                filters.entry_fee = entry_fee
+                logger.info(f"LangChain reasoning: Entry fee preference: {'allowed' if entry_fee else 'free only'}")
+            
+            if permit_required is not None:
+                filters.permit_required = permit_required
+                logger.info(f"LangChain reasoning: Permit requirement: {'allowed' if permit_required else 'no permit'}")
+            
+            if seasonal_access:
+                filters.seasonal_access = seasonal_access
+                logger.info(f"LangChain reasoning: Seasonal access: {seasonal_access}")
+            
+            if accessibility:
+                filters.accessibility = accessibility
+                logger.info(f"LangChain reasoning: Accessibility requirement: {accessibility}")
+            
+            # Trail characteristics
+            if surface_type:
+                filters.surface_type = surface_type
+                logger.info(f"LangChain reasoning: Surface type preference: {surface_type}")
+            
+            if trail_markers is not None:
+                filters.trail_markers = trail_markers
+                logger.info(f"LangChain reasoning: Trail marker requirement: {trail_markers}")
+            
+            if managing_agency:
+                filters.managing_agency = managing_agency
+                logger.info(f"LangChain reasoning: Agency preference: {managing_agency}")
             
             # Enhanced location handling with broader radius defaults
             if location:
@@ -180,10 +337,19 @@ if LANGCHAIN_AVAILABLE:
         
         async def _arun(self, query: str, location: str = None, max_distance_miles: float = None, 
                         max_elevation_gain_m: float = None, difficulty: str = None, route_type: str = None,
-                        dogs_allowed: bool = None, features: List[str] = None, radius_miles: float = None, **kwargs) -> str:
-            """Async version of trail search"""
+                        dogs_allowed: bool = None, features: List[str] = None, radius_miles: float = None,
+                        city: str = None, county: str = None, state: str = None, region: str = None,
+                        parking_available: bool = None, parking_type: str = None, restrooms: bool = None,
+                        water_available: bool = None, picnic_areas: bool = None, camping_available: bool = None,
+                        entry_fee: bool = None, permit_required: bool = None, seasonal_access: str = None,
+                        accessibility: str = None, surface_type: str = None, trail_markers: bool = None,
+                        loop_trail: bool = None, managing_agency: str = None, **kwargs) -> str:
+            """Async version of trail search with enhanced parameters"""
             return self._run(query, location, max_distance_miles, max_elevation_gain_m, difficulty, 
-                           route_type, dogs_allowed, features, radius_miles, **kwargs)
+                           route_type, dogs_allowed, features, radius_miles, city, county, state, region,
+                           parking_available, parking_type, restrooms, water_available, picnic_areas,
+                           camping_available, entry_fee, permit_required, seasonal_access, accessibility,
+                           surface_type, trail_markers, loop_trail, managing_agency, **kwargs)
 
     class StreamingCallbackHandler(BaseCallbackHandler):
         """Custom callback handler for streaming LangChain responses"""
@@ -196,6 +362,69 @@ if LANGCHAIN_AVAILABLE:
             """Called when a new token is generated"""
             if self.stream_callback:
                 self.stream_callback(token)
+
+    class GetAllTrailsTool(BaseTool):
+        """LangChain tool for getting all trails functionality"""
+        name: str = "get_all_trails"
+        description: str = """Get all trails in the database. Use this when users ask to see 'all trails', 'show me all trails', 'list all trails', or want to browse all available trails. Can optionally filter by area/location like 'all trails in Chicago' or 'show me all trails in Illinois'."""
+        args_schema: type = GetAllTrailsInput
+        agent_instance: Any = Field(default=None, exclude=True)
+        
+        def __init__(self, agent_instance=None, **kwargs):
+            super().__init__(agent_instance=agent_instance, **kwargs)
+        
+        def _run(self, query: str, area_filter: str = None, limit: int = 50, **kwargs) -> str:
+            """Execute get all trails with LangChain's enhanced reasoning"""
+            try:
+                from database import db_manager
+                logger.info(f"LangChain tool executing get all trails: {query} (area: {area_filter}, limit: {limit})")
+                
+                # Execute get all trails query
+                trails = db_manager.get_all_trails(
+                    limit=min(limit, 100),  # Cap at 100
+                    area_filter=area_filter,
+                    request_id="langchain_get_all"
+                )
+                
+                if self.agent_instance:
+                    self.agent_instance.last_trails = trails
+                
+                # Return reasoning-based response for the agent
+                if trails:
+                    analysis_parts = []
+                    area_text = f" in {area_filter}" if area_filter else ""
+                    analysis_parts.append(f"✅ Successfully retrieved {len(trails)} trails{area_text}!")
+                    
+                    # Add reasoning about the results
+                    analysis_parts.append(f"📋 I've organized them by difficulty level (easy → moderate → hard) for easy browsing.")
+                    
+                    if area_filter:
+                        analysis_parts.append(f"🗺️ I filtered the results to show trails related to {area_filter}.")
+                    else:
+                        analysis_parts.append("🌍 These represent all available trails in our database.")
+                    
+                    # Provide overview statistics
+                    difficulties = {}
+                    for trail in trails:
+                        diff = trail.get('difficulty', 'unknown')
+                        difficulties[diff] = difficulties.get(diff, 0) + 1
+                    
+                    if difficulties:
+                        stats = []
+                        for diff in ['easy', 'moderate', 'hard']:
+                            if diff in difficulties:
+                                stats.append(f"{difficulties[diff]} {diff}")
+                        if stats:
+                            analysis_parts.append(f"📊 Breakdown: {', '.join(stats)} trails.")
+                    
+                    return "\n".join(analysis_parts)
+                else:
+                    area_text = f" in {area_filter}" if area_filter else ""
+                    return f"❌ I couldn't find any trails{area_text}. There might be no trails matching that area or the database might be empty."
+                    
+            except Exception as e:
+                logger.error(f"LangChain get all trails tool failed: {e}")
+                return f"❌ I encountered an error while retrieving trails: {str(e)}"
 
     class LangChainTrailAgent:
         """LangChain-based AI agent for trail search"""
@@ -217,7 +446,10 @@ if LANGCHAIN_AVAILABLE:
             )
             
             # Initialize tools with reference to this agent instance
-            self.tools = [TrailSearchTool(agent_instance=self)]
+            self.tools = [
+                TrailSearchTool(agent_instance=self),
+                GetAllTrailsTool(agent_instance=self)
+            ]
             
             # Initialize memory for conversation context
             self.memory = ConversationBufferMemory(
@@ -350,11 +582,6 @@ Always think step-by-step, explain your reasoning, and maintain a helpful, knowl
                         
                         yield {"type": "token", "content": f"\n💡 **LangChain Insights**:\n{follow_up}\n\n", "request_id": request_id}
                         
-                        # Add memory-based recommendations
-                        memory_insight = "🧠 **Memory Note**: I'll remember your preferences for future searches. Feel free to ask for refinements or explore different areas!"
-                        for char in memory_insight:
-                            yield {"type": "token", "content": char, "request_id": request_id}
-                            await asyncio.sleep(0.005)
                     else:
                         # Use memory to provide better suggestions
                         yield {"type": "token", "content": "🔍 **Alternative Strategy**:\n\n", "request_id": request_id}

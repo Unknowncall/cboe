@@ -22,7 +22,7 @@ class ChatRequest(BaseModel):
         return v
 
 class Trail(BaseModel):
-    """Trail model for API responses"""
+    """Trail model for API responses with enhanced information"""
     id: int
     name: str
     distance_miles: float
@@ -35,9 +35,40 @@ class Trail(BaseModel):
     longitude: float
     description_snippet: str
     why: str
+    
+    # Enhanced location information
+    city: Optional[str] = None
+    county: Optional[str] = None
+    state: Optional[str] = None
+    region: Optional[str] = None
+    country: Optional[str] = None
+    
+    # Amenities and access information
+    parking_available: Optional[bool] = None
+    parking_type: Optional[str] = None
+    restrooms: Optional[bool] = None
+    water_available: Optional[bool] = None
+    picnic_areas: Optional[bool] = None
+    camping_available: Optional[bool] = None
+    
+    # Access and permit information
+    entry_fee: Optional[bool] = None
+    permit_required: Optional[bool] = None
+    seasonal_access: Optional[str] = None
+    accessibility: Optional[str] = None
+    
+    # Trail characteristics
+    surface_type: Optional[str] = None
+    trail_markers: Optional[bool] = None
+    loop_trail: Optional[bool] = None
+    
+    # Contact and website
+    managing_agency: Optional[str] = None
+    website_url: Optional[str] = None
+    phone_number: Optional[str] = None
 
 class TrailDetail(BaseModel):
-    """Detailed trail model with full description"""
+    """Detailed trail model with full description and all amenities"""
     id: int
     name: str
     distance_miles: float
@@ -49,10 +80,42 @@ class TrailDetail(BaseModel):
     latitude: float
     longitude: float
     description: str
+    
+    # Enhanced location information
+    city: Optional[str] = None
+    county: Optional[str] = None
+    state: Optional[str] = None
+    region: Optional[str] = None
+    country: Optional[str] = None
+    
+    # Amenities and access information
+    parking_available: Optional[bool] = None
+    parking_type: Optional[str] = None
+    restrooms: Optional[bool] = None
+    water_available: Optional[bool] = None
+    picnic_areas: Optional[bool] = None
+    camping_available: Optional[bool] = None
+    
+    # Access and permit information
+    entry_fee: Optional[bool] = None
+    permit_required: Optional[bool] = None
+    seasonal_access: Optional[str] = None
+    accessibility: Optional[str] = None
+    
+    # Trail characteristics
+    surface_type: Optional[str] = None
+    trail_markers: Optional[bool] = None
+    loop_trail: Optional[bool] = None
+    
+    # Contact and website
+    managing_agency: Optional[str] = None
+    website_url: Optional[str] = None
+    phone_number: Optional[str] = None
 
 class ParsedFilters(BaseModel):
-    """Parsed search filters from user input"""
+    """Enhanced parsed search filters from user input"""
     distance_cap_miles: Optional[float] = None
+    distance_min_miles: Optional[float] = None
     elevation_cap_m: Optional[int] = None
     difficulty: Optional[str] = None
     route_type: Optional[str] = None
@@ -61,12 +124,49 @@ class ParsedFilters(BaseModel):
     radius_miles: Optional[float] = None
     center_lat: Optional[float] = None
     center_lng: Optional[float] = None
+    
+    # Enhanced location filters
+    city: Optional[str] = None
+    county: Optional[str] = None
+    state: Optional[str] = None
+    region: Optional[str] = None
+    
+    # Amenity filters - using consistent field names with database
+    parking_available: Optional[bool] = None
+    parking_type: Optional[str] = None  # 'free', 'paid', 'limited', 'street'
+    restrooms: Optional[bool] = None
+    water_available: Optional[bool] = None
+    picnic_areas: Optional[bool] = None
+    camping_available: Optional[bool] = None
+    
+    # Access and permit filters
+    entry_fee: Optional[bool] = None  # True for trails WITH fees, False for free trails
+    permit_required: Optional[bool] = None
+    seasonal_access: Optional[str] = None  # 'year-round', 'seasonal', 'summer', 'winter'
+    accessibility: Optional[str] = None  # 'wheelchair', 'stroller', 'none'
+    
+    # Trail characteristics
+    surface_type: Optional[str] = None  # 'paved', 'gravel', 'dirt', 'boardwalk', 'mixed'
+    trail_markers: Optional[bool] = None
+    loop_trail: Optional[bool] = None
+    
+    # Managing agency filter
+    managing_agency: Optional[str] = None
 
 class ToolTrace(BaseModel):
-    """Tool execution trace for debugging"""
+    """Enhanced tool execution trace for debugging and transparency"""
     tool: str
     duration_ms: int
-    result_count: int
+    result_count: Optional[int] = None
+    input_parameters: Optional[Dict[str, Any]] = None
+    reasoning: Optional[str] = None
+    function_call: Optional[Dict[str, Any]] = None
+    search_filters: Optional[Dict[str, Any]] = None
+    database_query: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    processing_steps: List[str] = []
+    errors: List[str] = []
+    success: bool = True
 
 class ChatResponse(BaseModel):
     """Response model for chat endpoint"""

@@ -81,10 +81,19 @@ export const useTrailSearch = () => {
 								setRequestId(data.request_id || null);
 							} else if (data.type === 'token') {
 								setStreamContent(prev => prev + (data.content || ''));
+							} else if (data.type === 'tool_trace') {
+								// Handle real-time tool trace updates
+								if (data.tool_trace) {
+									const trace = data.tool_trace;
+									setToolTraces(prev => [...prev, trace]);
+								}
 							} else if (data.type === 'done') {
 								setTrails(data.results || []);
 								setParsedFilters(data.parsed_filters || null);
-								setToolTraces(data.tool_traces || []);
+								// Keep accumulated tool traces from streaming, but merge with final ones if provided
+								if (data.tool_traces && data.tool_traces.length > 0) {
+									setToolTraces(data.tool_traces);
+								}
 								setIsStreaming(false);
 								setAbortController(null);
 							}

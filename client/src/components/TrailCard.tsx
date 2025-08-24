@@ -18,11 +18,6 @@ const TrailCard: React.FC<TrailCardProps> = memo(({
 	onToggleDetails,
 }) => {
 	// Memoize expensive computations
-	const formattedFeatures = useMemo(() =>
-		trail.features.join(', '),
-		[trail.features]
-	);
-
 	const formattedLocation = useMemo(() =>
 		`${trail.latitude.toFixed(4)}, ${trail.longitude.toFixed(4)}`,
 		[trail.latitude, trail.longitude]
@@ -110,6 +105,75 @@ const TrailCard: React.FC<TrailCardProps> = memo(({
 						</Badge>
 					))}
 				</div>
+
+				{/* Amenities Section */}
+				{(trail.parking_available !== undefined || trail.restrooms !== undefined ||
+					trail.entry_fee !== undefined || trail.surface_type || trail.accessibility) && (
+						<div className="flex flex-wrap gap-2 mb-4">
+							{trail.parking_available === true && (
+								<Badge className="bg-blue-100 text-blue-800">
+									🅿️ Parking
+								</Badge>
+							)}
+							{trail.restrooms === true && (
+								<Badge className="bg-green-100 text-green-800">
+									🚻 Restrooms
+								</Badge>
+							)}
+							{trail.entry_fee === false && (
+								<Badge className="bg-emerald-100 text-emerald-800">
+									💲 Free
+								</Badge>
+							)}
+							{trail.entry_fee === true && (
+								<Badge className="bg-orange-100 text-orange-800">
+									💰 Entry Fee
+								</Badge>
+							)}
+							{trail.surface_type && (
+								<Badge className="bg-gray-100 text-gray-800">
+									🛤️ {trail.surface_type}
+								</Badge>
+							)}
+							{trail.accessibility === 'wheelchair' && (
+								<Badge className="bg-purple-100 text-purple-800">
+									♿ Wheelchair Access
+								</Badge>
+							)}
+							{trail.accessibility === 'stroller' && (
+								<Badge className="bg-indigo-100 text-indigo-800">
+									👶 Stroller Friendly
+								</Badge>
+							)}
+							{trail.water_available === true && (
+								<Badge className="bg-cyan-100 text-cyan-800">
+									💧 Water
+								</Badge>
+							)}
+							{trail.picnic_areas === true && (
+								<Badge className="bg-green-100 text-green-800">
+									🧺 Picnic Areas
+								</Badge>
+							)}
+							{trail.camping_available === true && (
+								<Badge className="bg-amber-100 text-amber-800">
+									⛺ Camping
+								</Badge>
+							)}
+						</div>
+					)}
+
+				{/* Location Information */}
+				{(trail.city || trail.county || trail.managing_agency) && (
+					<div className="text-sm text-gray-600 mb-3">
+						{trail.city && trail.county && (
+							<span>📍 {trail.city}, {trail.county}</span>
+						)}
+						{trail.managing_agency && (
+							<span className="ml-3">🏛️ {trail.managing_agency}</span>
+						)}
+					</div>
+				)}
 
 				{/* Description Snippet */}
 				<p className="text-gray-600 mb-4">{trail.description_snippet}</p>
