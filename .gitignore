@@ -39,6 +39,9 @@ venv.bak/
 *.sqlite3
 trails.db
 
+# Exception: include API database for Vercel deployment
+!api/trails.db
+
 # Logs
 *.log
 trail_search.log
