@@ -11,7 +11,7 @@ const ExampleQueries: React.FC<ExampleQueriesProps> = ({ onExampleClick, disable
 		"Free trails with parking and restrooms in Illinois",
 		"Paved trails that are wheelchair accessible with no entry fees",
 		"Dog-friendly trails with camping available in state parks",
-		"Trails managed by National Park Service with water fountains",
+		"Trails managed by National Park Service with water",
 		"Moderate trails with picnic areas and year-round access",
 		"Loop trails under 5 miles in Cook County with restrooms",
 		"Hard difficulty trails in Wisconsin state parks",

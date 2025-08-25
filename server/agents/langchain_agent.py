@@ -43,6 +43,7 @@ if LANGCHAIN_AVAILABLE:
         query: str = Field(description="The user's natural language query about trails")
         location: Optional[str] = Field(None, description="Location or city name to search near (e.g., 'Chicago', 'near Chicago')")
         max_distance_miles: Optional[float] = Field(None, description="Maximum trail length in miles if specified")
+        min_distance_miles: Optional[float] = Field(None, description="Minimum trail length in miles. Use this when the user says 'more than X miles', 'over X miles', 'at least X miles', 'longer than X miles', 'greater than X miles', etc.")
         max_elevation_gain_m: Optional[float] = Field(None, description="Maximum elevation gain in meters if specified")
         difficulty: Optional[str] = Field(None, description="Trail difficulty level (easy/moderate/hard)")
         route_type: Optional[str] = Field(None, description="Type of trail route (loop/out and back)")
@@ -87,7 +88,7 @@ if LANGCHAIN_AVAILABLE:
         name: str = "search_trails"
         description: str = """Search for hiking trails based on comprehensive user criteria including location, difficulty, distance, features, amenities, accessibility, and costs. Extract all relevant parameters from the user's natural language query including:
         - Location (city, county, state, region) to search near
-        - Maximum trail length in miles and elevation gain
+        - Maximum trail length in miles AND minimum trail length (for 'over X miles' queries)  
         - Trail difficulty level (easy/moderate/hard) and route type (loop/out and back)
         - Whether dogs are allowed/wanted
         - Desired trail features like 'waterfall', 'lake', 'scenic', 'views', 'forest', 'prairie', 'beach', 'canyon', 'historic'
@@ -103,7 +104,7 @@ if LANGCHAIN_AVAILABLE:
             super().__init__(agent_instance=agent_instance, **kwargs)
         
         def _run(self, query: str, location: str = None, max_distance_miles: float = None, 
-                 max_elevation_gain_m: float = None, difficulty: str = None, route_type: str = None,
+                 min_distance_miles: float = None, max_elevation_gain_m: float = None, difficulty: str = None, route_type: str = None,
                  dogs_allowed: bool = None, features: List[str] = None, radius_miles: float = None,
                  city: str = None, county: str = None, state: str = None, region: str = None,
                  parking_available: bool = None, parking_type: str = None, restrooms: bool = None,
@@ -117,7 +118,7 @@ if LANGCHAIN_AVAILABLE:
                 
                 # Use LangChain's reasoning to provide better parameter interpretation
                 trails = self._execute_search_with_reasoning(
-                    query, location, max_distance_miles, max_elevation_gain_m, difficulty, route_type, 
+                    query, location, max_distance_miles, min_distance_miles, max_elevation_gain_m, difficulty, route_type, 
                     dogs_allowed, features, radius_miles, city, county, state, region,
                     parking_available, parking_type, restrooms, water_available, picnic_areas, 
                     camping_available, entry_fee, permit_required, seasonal_access, accessibility,
@@ -126,6 +127,9 @@ if LANGCHAIN_AVAILABLE:
                 
                 if self.agent_instance:
                     self.agent_instance.last_trails = trails
+                    logger.info(f"TrailSearchTool: Set {len(trails)} trails on agent instance")
+                else:
+                    logger.warning("TrailSearchTool: No agent instance available to set trails on")
                 
                 # Return reasoning-based response for the agent
                 if trails:
@@ -148,6 +152,9 @@ if LANGCHAIN_AVAILABLE:
                     
                     if max_distance_miles:
                         analysis_parts.append(f"📏 I limited results to trails under {max_distance_miles} miles as requested.")
+                    
+                    if min_distance_miles:
+                        analysis_parts.append(f"📏 I filtered for trails over {min_distance_miles} miles for a more substantial hike.")
                     
                     if entry_fee is False:
                         analysis_parts.append(f"💲 I ensured all trails are free as you requested.")
@@ -199,7 +206,7 @@ if LANGCHAIN_AVAILABLE:
                 return f"⚠️ Error during trail analysis: {str(e)}\n\nLet me try a different approach to help you find trails."
         
         def _execute_search_with_reasoning(self, query: str, location: str = None, max_distance_miles: float = None, 
-                                          max_elevation_gain_m: float = None, difficulty: str = None, route_type: str = None,
+                                          min_distance_miles: float = None, max_elevation_gain_m: float = None, difficulty: str = None, route_type: str = None,
                                           dogs_allowed: bool = None, features: List[str] = None, radius_miles: float = None,
                                           city: str = None, county: str = None, state: str = None, region: str = None,
                                           parking_available: bool = None, parking_type: str = None, restrooms: bool = None,
@@ -218,6 +225,10 @@ if LANGCHAIN_AVAILABLE:
             elif any(word in query.lower() for word in ["short", "quick", "easy walk"]):
                 filters.distance_cap_miles = 3.0  # Smart default for short requests
                 logger.info("LangChain reasoning: Applied 3-mile limit for 'short' trail request")
+            
+            if min_distance_miles:
+                filters.distance_min_miles = min_distance_miles
+                logger.info(f"LangChain reasoning: Applied minimum distance filter: {min_distance_miles} miles")
             
             if max_elevation_gain_m:
                 filters.elevation_cap_m = max_elevation_gain_m
@@ -315,10 +326,17 @@ if LANGCHAIN_AVAILABLE:
                 filters.managing_agency = managing_agency
                 logger.info(f"LangChain reasoning: Agency preference: {managing_agency}")
             
-            # Enhanced location handling with broader radius defaults
+            # Enhanced location handling with broader radius defaults and state detection
             if location:
                 location_lower = location.lower()
-                if "chicago" in location_lower:
+                
+                # Check if location is actually a state name (like custom agent)
+                state_names = ['wisconsin', 'illinois', 'michigan', 'indiana', 'iowa', 'minnesota', 'ohio']
+                if location_lower in state_names:
+                    # Map location to state filter
+                    filters.state = location
+                    logger.info(f"LangChain reasoning: Location '{location}' mapped to state filter")
+                elif "chicago" in location_lower:
                     filters.center_lat = 41.8781
                     filters.center_lng = -87.6298
                     # LangChain uses more generous defaults
@@ -330,13 +348,16 @@ if LANGCHAIN_AVAILABLE:
                     else:
                         filters.radius_miles = radius_miles
                     logger.info(f"LangChain reasoning: Set Chicago area search with {filters.radius_miles}-mile radius")
+                else:
+                    # For other locations, store as general location filter
+                    logger.info(f"LangChain reasoning: General location '{location}' noted but not specifically mapped")
             
             # Execute the actual search
             trails = trail_searcher.search_trails(query, filters, "langchain-enhanced")
             return trails
         
         async def _arun(self, query: str, location: str = None, max_distance_miles: float = None, 
-                        max_elevation_gain_m: float = None, difficulty: str = None, route_type: str = None,
+                        min_distance_miles: float = None, max_elevation_gain_m: float = None, difficulty: str = None, route_type: str = None,
                         dogs_allowed: bool = None, features: List[str] = None, radius_miles: float = None,
                         city: str = None, county: str = None, state: str = None, region: str = None,
                         parking_available: bool = None, parking_type: str = None, restrooms: bool = None,
@@ -345,7 +366,7 @@ if LANGCHAIN_AVAILABLE:
                         accessibility: str = None, surface_type: str = None, trail_markers: bool = None,
                         loop_trail: bool = None, managing_agency: str = None, **kwargs) -> str:
             """Async version of trail search with enhanced parameters"""
-            return self._run(query, location, max_distance_miles, max_elevation_gain_m, difficulty, 
+            return self._run(query, location, max_distance_miles, min_distance_miles, max_elevation_gain_m, difficulty, 
                            route_type, dogs_allowed, features, radius_miles, city, county, state, region,
                            parking_available, parking_type, restrooms, water_available, picnic_areas,
                            camping_available, entry_fee, permit_required, seasonal_access, accessibility,
@@ -388,6 +409,9 @@ if LANGCHAIN_AVAILABLE:
                 
                 if self.agent_instance:
                     self.agent_instance.last_trails = trails
+                    logger.info(f"GetAllTrailsTool: Set {len(trails)} trails on agent instance")
+                else:
+                    logger.warning("GetAllTrailsTool: No agent instance available to set trails on")
                 
                 # Return reasoning-based response for the agent
                 if trails:
@@ -505,6 +529,8 @@ if LANGCHAIN_AVAILABLE:
 - Consider companion needs (dog-friendly, family-suitable, accessible)
 - Factor in seasonal and weather considerations
 
+IMPORTANT: For ANY trail-related request, you MUST use the search_trails tool to find actual trails. Never provide general advice without searching for specific trails first. Extract all relevant parameters from the user's query and call the search_trails tool with those parameters.
+
 Always think step-by-step, explain your reasoning, and maintain a helpful, knowledgeable tone that builds trust through transparency."""
             }
         )
@@ -520,8 +546,8 @@ Always think step-by-step, explain your reasoning, and maintain a helpful, knowl
                 self.last_trails = []
                 
                 # Let LangChain agent do its reasoning first (stream the thinking process)
-                yield {"type": "token", "content": "� **LangChain Agent Analysis**\n\n", "request_id": request_id}
-                yield {"type": "token", "content": "�🤔 Let me analyze your request and think through the best search approach...\n\n", "request_id": request_id}
+                yield {"type": "token", "content": "🧠 **LangChain Agent Analysis**\n\n", "request_id": request_id}
+                yield {"type": "token", "content": "🤔 Let me analyze your request and think through the best search approach...\n\n", "request_id": request_id}
                 
                 # Run the agent with full LangChain reasoning - but don't stream the full response
                 try:
@@ -529,6 +555,10 @@ Always think step-by-step, explain your reasoning, and maintain a helpful, knowl
                         None, 
                         lambda: self.agent.run(input=user_message)
                     )
+                    
+                    # Give the tool time to set trails on the agent instance
+                    await asyncio.sleep(0.1)
+                    logger.info(f"LangChain agent: After agent run, last_trails has {len(self.last_trails) if self.last_trails else 0} trails")
                     
                     # Parse the LangChain response to extract key insights
                     analysis_parts = []
@@ -546,34 +576,34 @@ Always think step-by-step, explain your reasoning, and maintain a helpful, knowl
                     
                     # Stream the analysis
                     for part in analysis_parts:
-                        for char in part:
-                            yield {"type": "token", "content": char, "request_id": request_id}
-                            await asyncio.sleep(0.005)
-                        yield {"type": "token", "content": "\n\n", "request_id": request_id}
+                        yield {"type": "token", "content": part + "\n\n", "request_id": request_id}
                     
                     yield {"type": "token", "content": "🔍 **Search Strategy**: Based on my analysis, here's my approach:\n", "request_id": request_id}
                     
                     # Show the actual search parameters being used
+                    logger.info(f"LangChain agent: Checking last_trails length: {len(self.last_trails) if self.last_trails else 'None'}")
                     if self.last_trails:
                         strategy_msg = f"✅ I found {len(self.last_trails)} trails using enhanced parameter optimization.\n\n"
-                        for char in strategy_msg:
-                            yield {"type": "token", "content": char, "request_id": request_id}
-                            await asyncio.sleep(0.005)
+                        yield {"type": "token", "content": strategy_msg, "request_id": request_id}
                     else:
                         strategy_msg = "⚠️ Initial search parameters were very specific. Let me broaden the criteria...\n\n"
-                        for char in strategy_msg:
-                            yield {"type": "token", "content": char, "request_id": request_id}
-                            await asyncio.sleep(0.005)
+                        yield {"type": "token", "content": strategy_msg, "request_id": request_id}
                     
                     # Now yield the trail results if we found any
                     if self.last_trails:
-                        yield {"type": "token", "content": "� **Results Analysis**:\n\n", "request_id": request_id}
+                        logger.info(f"LangChain agent: About to yield {len(self.last_trails)} trails")
+                        yield {"type": "token", "content": "📊 **Results Analysis**:\n\n", "request_id": request_id}
+                        
+                        # Generate and yield actual analysis content
+                        analysis_content = await self._generate_trail_commentary(self.last_trails, user_message)
+                        yield {"type": "token", "content": analysis_content + "\n\n", "request_id": request_id}
                         
                         yield {
                             "type": "trails",
                             "trails": self.last_trails,
                             "request_id": request_id
                         }
+                        logger.info(f"LangChain agent: Successfully yielded trails data")
                         
                         # Generate contextual follow-up based on conversation history
                         follow_up = await self._generate_contextual_followup(
@@ -581,18 +611,12 @@ Always think step-by-step, explain your reasoning, and maintain a helpful, knowl
                         )
                         
                         yield {"type": "token", "content": f"\n💡 **LangChain Insights**:\n{follow_up}\n\n", "request_id": request_id}
-                        
                     else:
+                        logger.warning(f"LangChain agent: No trails found to yield")
                         # Use memory to provide better suggestions
                         yield {"type": "token", "content": "🔍 **Alternative Strategy**:\n\n", "request_id": request_id}
                         contextual_msg = await self._generate_no_results_with_context(user_message)
-                        for char in contextual_msg:
-                            yield {
-                                "type": "token",
-                                "content": char,
-                                "request_id": request_id
-                            }
-                            await asyncio.sleep(0.005)
+                        yield {"type": "token", "content": contextual_msg, "request_id": request_id}
                     
                     logger.info(f"LangChain agent completed: {len(self.last_trails)} trails, with enhanced reasoning (Request: {request_id})")
                     
@@ -600,25 +624,13 @@ Always think step-by-step, explain your reasoning, and maintain a helpful, knowl
                     logger.error(f"LangChain agent execution error: {e}")
                     error_message = f"⚠️ I encountered an error during my analysis: {str(e)}\n\nLet me try a simpler approach..."
                     
-                    for char in error_message:
-                        yield {
-                            "type": "token",
-                            "content": char,
-                            "request_id": request_id
-                        }
-                        await asyncio.sleep(0.01)
+                    yield {"type": "token", "content": error_message, "request_id": request_id}
                 
             except Exception as e:
                 logger.error(f"LangChain agent error: {e} (Request: {request_id})")
                 error_response = "⚠️ I apologize, but I encountered an error during my analysis. Please try again."
                 
-                for char in error_response:
-                    yield {
-                        "type": "token", 
-                        "content": char,
-                        "request_id": request_id
-                    }
-                    await asyncio.sleep(0.01)
+                yield {"type": "token", "content": error_response, "request_id": request_id}
         
         
         async def _generate_contextual_followup(self, trails: List[Dict[str, Any]], original_query: str, agent_response: str) -> str:
@@ -699,24 +711,53 @@ Always think step-by-step, explain your reasoning, and maintain a helpful, knowl
                 return "I couldn't find matching trails, but I'd be happy to help you explore alternatives!"
 
         async def _generate_trail_commentary(self, trails: List[Dict[str, Any]], original_query: str) -> str:
-            """Generate helpful commentary about the search results - same as custom agent"""
+            """Generate helpful commentary about the search results - enhanced version"""
             try:
                 # Create a summary of the results
                 summary_parts = []
                 
                 if len(trails) == 1:
-                    summary_parts.append("I found one great trail that matches your criteria:")
+                    summary_parts.append(f"🎯 I found **{len(trails)} perfect trail** that matches your criteria!")
                 else:
-                    summary_parts.append(f"I found {len(trails)} trails that match your criteria:")
+                    summary_parts.append(f"🎯 I found **{len(trails)} great trails** that match your criteria!")
                 
-                # Add personalized recommendations
-                summary_parts.append("\nEach trail has been selected based on your specific requirements. Check out the details above to see which one appeals to you most!")
+                # Analyze the results
+                difficulties = [trail.get('difficulty', '').lower() for trail in trails]
+                distances = [trail.get('distance_miles', 0) for trail in trails]
+                features = []
+                for trail in trails:
+                    features.extend(trail.get('features', []))
                 
-                return " ".join(summary_parts)
+                # Add insights about the selection
+                if difficulties:
+                    difficulty_counts = {d: difficulties.count(d) for d in set(difficulties) if d}
+                    if len(difficulty_counts) == 1:
+                        difficulty = list(difficulty_counts.keys())[0]
+                        summary_parts.append(f"\n✅ All trails are **{difficulty}** difficulty level, perfect for your request.")
+                    else:
+                        summary_parts.append(f"\n🎯 Mix of difficulty levels: {', '.join(f'{count} {diff}' for diff, count in difficulty_counts.items())}")
+                
+                if distances:
+                    min_dist = min(distances)
+                    max_dist = max(distances)
+                    avg_dist = sum(distances) / len(distances)
+                    summary_parts.append(f"\n📏 Distance range: **{min_dist:.1f} - {max_dist:.1f} miles** (avg: {avg_dist:.1f} miles)")
+                
+                # Highlight popular features
+                if features:
+                    feature_counts = {f: features.count(f) for f in set(features)}
+                    top_features = sorted(feature_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+                    if top_features:
+                        feature_list = [f"**{feat}** ({count} trails)" for feat, count in top_features]
+                        summary_parts.append(f"\n🌟 Popular features: {', '.join(feature_list)}")
+                
+                summary_parts.append(f"\n💡 Each trail has been carefully selected using LangChain's enhanced reasoning to match your specific requirements!")
+                
+                return "\n".join(summary_parts)
                 
             except Exception as e:
                 logger.error(f"Failed to generate commentary: {e}")
-                return "Here are the trails I found for you!"
+                return f"I found {len(trails)} trails that match your criteria. Check out the details below!"
 
 else:
     # Provide dummy implementations when LangChain is not available

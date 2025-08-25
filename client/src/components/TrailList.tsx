@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { MapPin, Mountain, Route, Dog, TreePine } from 'lucide-react';
+import { MapPin, Mountain, Route, Dog, TreePine, PersonStanding } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useResults } from '../contexts';
 
@@ -91,6 +91,10 @@ const TrailList: React.FC = memo(() => {
 												<div className="text-left">
 													<p className="font-bold text-gray-900 text-lg group-hover:text-emerald-700 transition-colors duration-200">
 														{trail.name}
+													</p>
+													<p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+														<PersonStanding className="h-4 w-4 text-gray-500" />
+														{trail.managing_agency}
 													</p>
 													{trail.city && trail.state && (
 														<p className="text-sm text-gray-600 flex items-center gap-1 mt-1">

@@ -1,4 +1,4 @@
-import React, { useRef, Suspense, lazy } from 'react';
+import React, { useRef, Suspense, lazy, useEffect } from 'react';
 import SearchForm from '../components/SearchForm';
 import StreamingPanel from '../components/StreamingPanel';
 import TrailList from '../components/TrailList';
@@ -12,9 +12,25 @@ const ToolTrace = lazy(() => import('../components/ToolTrace'));
 
 const SearchPage: React.FC = () => {
 	const { showToolTrace } = useSearchState();
-	const { requestId } = useResults();
+	const { requestId, isStreaming } = useResults();
 
 	const streamingPanelRef = useRef<HTMLDivElement>(null);
+
+	// Auto-scroll to streaming panel when streaming starts
+	useEffect(() => {
+		if (isStreaming && streamingPanelRef.current) {
+			const scrollToPanel = () => {
+				streamingPanelRef.current?.scrollIntoView({
+					behavior: 'smooth',
+					block: 'start'
+				});
+			};
+
+			// Add a slight delay to ensure the panel is rendered
+			const timeoutId = setTimeout(scrollToPanel, 100);
+			return () => clearTimeout(timeoutId);
+		}
+	}, [isStreaming]);
 
 	return (
 		<>
