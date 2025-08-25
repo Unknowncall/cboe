@@ -55,9 +55,7 @@ npm run dev
 
 ## Usage
 
-![Trail Search Demo](docs/demo-screenshot.png)
-
-![Trail Search Video Demo](docs/demo-video.mp4)
+[![Trail Search Demo Video](https://img.youtube.com/vi/6ny8zqhDZGo/0.jpg)](https://www.youtube.com/watch?v=6ny8zqhDZGo)
 
 • Use natural language queries: *"Find easy trails near lakes"*  
 • Apply filters for difficulty, distance, and features  
