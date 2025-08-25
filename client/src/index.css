@@ -1,1 +1,41 @@
 @import "tailwindcss";
+
+@layer components {
+  /* Button utility classes for repeated patterns */
+  .btn-primary {
+    @apply px-8 py-4 text-lg font-semibold bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200;
+  }
+  
+  .btn-secondary {
+    @apply px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none transition-all duration-200;
+  }
+  
+  /* Common transitions */
+  .smooth-transition {
+    @apply transition-all duration-200;
+  }
+  
+  /* Gradient backgrounds */
+  .gradient-bg-primary {
+    @apply bg-gradient-to-r from-emerald-500 to-blue-500;
+  }
+  
+  .gradient-bg-secondary {
+    @apply bg-gradient-to-r from-emerald-50 to-blue-50;
+  }
+  
+  /* Background with blur effect */
+  .bg-blur {
+    @apply bg-white/80 backdrop-blur-md;
+  }
+  
+  /* Card styling */
+  .card-base {
+    @apply rounded-2xl shadow-xl border border-white/20 p-8;
+  }
+  
+  /* Icon containers */
+  .icon-container {
+    @apply p-3 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full shadow-lg;
+  }
+}

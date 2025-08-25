@@ -39,7 +39,7 @@ class CustomTrailAgent:
     def __init__(self):
         # Log API key status for debugging
         if OPENAI_API_KEY:
-            logger.info(f"OpenAI API key found: {OPENAI_API_KEY[:8]}...{OPENAI_API_KEY[-4:] if len(OPENAI_API_KEY) > 12 else '[short]'}")
+            logger.info("OpenAI API key configured successfully")
         else:
             logger.error("OPENAI_API_KEY environment variable is not set!")
             raise ValueError("OPENAI_API_KEY environment variable is required")
@@ -78,7 +78,8 @@ class CustomTrailAgent:
                     tool_choice="auto",
                     stream=True,
                     max_tokens=self.max_tokens,
-                    temperature=0.7
+                    temperature=0.7,
+                    timeout=30.0
                 )
                 # If we get here, the model works
                 logger.info(f"Successfully connected to model: {model_name}")

@@ -1,46 +1,20 @@
-import React, { useRef } from 'react';
+import React, { useRef, Suspense, lazy } from 'react';
 import SearchForm from '../components/SearchForm';
 import StreamingPanel from '../components/StreamingPanel';
-import ToolTrace from '../components/ToolTrace';
 import TrailList from '../components/TrailList';
 import SEOHead from '../components/SEOHead';
-import { useTrailSearch } from '../hooks/useTrailSearch';
+import ErrorBoundary from '../components/ErrorBoundary';
+import { useSearchState, useResults } from '../contexts';
 import { Search } from 'lucide-react';
 
+// Lazy load ToolTrace since it's only shown conditionally
+const ToolTrace = lazy(() => import('../components/ToolTrace'));
+
 const SearchPage: React.FC = () => {
-	const {
-		message,
-		setMessage,
-		streamContent,
-		trails,
-		toolTraces,
-		showToolTrace,
-		setShowToolTrace,
-		isStreaming,
-		requestId,
-		availableAgents,
-		selectedAgent,
-		setSelectedAgent,
-		handleSubmit,
-		cancelStreaming,
-	} = useTrailSearch();
+	const { showToolTrace } = useSearchState();
+	const { requestId } = useResults();
 
 	const streamingPanelRef = useRef<HTMLDivElement>(null);
-
-	const scrollToResults = () => {
-		setTimeout(() => {
-			streamingPanelRef.current?.scrollIntoView({
-				behavior: 'smooth',
-				block: 'start',
-				inline: 'nearest'
-			});
-		}, 100);
-	};
-
-	const handleSearchSubmit = (data: any) => {
-		handleSubmit(data);
-		scrollToResults();
-	};
 
 	return (
 		<>
@@ -74,17 +48,9 @@ const SearchPage: React.FC = () => {
 							</p>
 						</div>
 
-						<SearchForm
-							message={message}
-							setMessage={setMessage}
-							onSubmit={handleSearchSubmit}
-							isStreaming={isStreaming}
-							showToolTrace={showToolTrace}
-							setShowToolTrace={setShowToolTrace}
-							availableAgents={availableAgents}
-							selectedAgent={selectedAgent}
-							setSelectedAgent={setSelectedAgent}
-						/>
+						<ErrorBoundary fallback={<div className="text-center py-4 text-red-600">Search form unavailable</div>}>
+							<SearchForm />
+						</ErrorBoundary>
 
 						{/* Request ID */}
 						{requestId && (
@@ -93,17 +59,23 @@ const SearchPage: React.FC = () => {
 							</div>
 						)}
 
-						<div ref={streamingPanelRef}>
-							<StreamingPanel
-								streamContent={streamContent}
-								isStreaming={isStreaming}
-								onCancel={cancelStreaming}
-							/>
-						</div>
+						<ErrorBoundary fallback={<div className="text-center py-4 text-red-600">Streaming panel unavailable</div>}>
+							<div ref={streamingPanelRef}>
+								<StreamingPanel />
+							</div>
+						</ErrorBoundary>
 
-						<ToolTrace toolTraces={toolTraces} showToolTrace={showToolTrace} />
+						{showToolTrace && (
+							<ErrorBoundary fallback={<div className="text-center py-4 text-red-600">Tool trace unavailable</div>}>
+								<Suspense fallback={<div className="text-center py-4">Loading trace...</div>}>
+									<ToolTrace />
+								</Suspense>
+							</ErrorBoundary>
+						)}
 
-						<TrailList trails={trails} />
+						<ErrorBoundary fallback={<div className="text-center py-4 text-red-600">Trail results unavailable</div>}>
+							<TrailList />
+						</ErrorBoundary>
 					</div>
 				</div>
 			</div>

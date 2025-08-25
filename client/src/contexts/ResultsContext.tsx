@@ -1,27 +1,44 @@
-import { useState, useEffect, useRef } from 'react';
-import type { Trail, ParsedFilters, ToolTrace, StreamEvent, TrailDetails } from '../types';
+import React, { createContext, useContext, ReactNode, useState, useRef, useEffect, useCallback } from 'react';
+import type { Trail, ParsedFilters, ToolTrace, TrailDetails, StreamEvent } from '../types';
+import type { SearchFormData } from '../schemas';
 import { STREAM_TIMEOUT_MS } from '../constants/validation';
 
-// Type for form data from SearchForm
-export interface SearchFormData {
-	query: string;
-	showToolTrace: boolean;
-	agentType: string;
+// Results context - only search results and streaming content
+interface ResultsContextType {
+	streamContent: string;
+	setStreamContent: (content: string | ((prev: string) => string)) => void;
+	trails: Trail[];
+	setTrails: (trails: Trail[]) => void;
+	parsedFilters: ParsedFilters | null;
+	setParsedFilters: (filters: ParsedFilters | null) => void;
+	toolTraces: ToolTrace[];
+	setToolTraces: (traces: ToolTrace[] | ((prev: ToolTrace[]) => ToolTrace[])) => void;
+	requestId: string | null;
+	setRequestId: (id: string | null) => void;
+	expandedTrails: Set<number>;
+	trailDetails: Map<number, any>;
+	toggleTrailDetails: (trail: Trail) => Promise<void>;
+	handleSubmit: (data: SearchFormData) => Promise<void>;
+	cancelStreaming: () => void;
+	isStreaming: boolean;
 }
 
-export const useTrailSearch = () => {
-	const [message, setMessage] = useState('');
+const ResultsContext = createContext<ResultsContextType | null>(null);
+
+interface ResultsProviderProps {
+	children: ReactNode;
+}
+
+export const ResultsProvider: React.FC<ResultsProviderProps> = ({ children }) => {
 	const [streamContent, setStreamContent] = useState('');
 	const [trails, setTrails] = useState<Trail[]>([]);
 	const [parsedFilters, setParsedFilters] = useState<ParsedFilters | null>(null);
 	const [toolTraces, setToolTraces] = useState<ToolTrace[]>([]);
-	const [showToolTrace, setShowToolTrace] = useState(false);
-	const [isStreaming, setIsStreaming] = useState(false);
 	const [requestId, setRequestId] = useState<string | null>(null);
 	const [expandedTrails, setExpandedTrails] = useState<Set<number>>(new Set());
 	const [trailDetails, setTrailDetails] = useState<Map<number, TrailDetails>>(new Map());
-	const [availableAgents, setAvailableAgents] = useState<any>(null);
-	const [selectedAgent, setSelectedAgent] = useState('custom');
+	const [isStreaming, setIsStreaming] = useState(false);
+
 	const abortControllerRef = useRef<AbortController | null>(null);
 
 	// Cleanup AbortController on unmount to prevent memory leaks
@@ -33,12 +50,8 @@ export const useTrailSearch = () => {
 		};
 	}, []); // No dependencies - stable cleanup
 
-	const handleSubmit = async (data: SearchFormData) => {
+	const handleSubmit = useCallback(async (data: SearchFormData) => {
 		if (!data.query.trim() || isStreaming) return;
-
-		// Update state from form data
-		setMessage(data.query);
-		setShowToolTrace(data.showToolTrace);
 
 		// Clear previous results
 		setStreamContent('');
@@ -141,16 +154,16 @@ export const useTrailSearch = () => {
 			setIsStreaming(false);
 			abortControllerRef.current = null;
 		}
-	};
+	}, [isStreaming, setIsStreaming]);
 
-	const cancelStreaming = () => {
+	const cancelStreaming = useCallback(() => {
 		if (abortControllerRef.current) {
 			abortControllerRef.current.abort();
 			abortControllerRef.current = null;
 			setIsStreaming(false);
 			setStreamContent(prev => prev + '\n\n[Request cancelled by user]');
 		}
-	};
+	}, [setIsStreaming]);
 
 	const toggleTrailDetails = async (trail: Trail) => {
 		if (expandedTrails.has(trail.id)) {
@@ -177,25 +190,36 @@ export const useTrailSearch = () => {
 		}
 	};
 
-	return {
-		message,
-		setMessage,
+	const value: ResultsContextType = {
 		streamContent,
+		setStreamContent,
 		trails,
+		setTrails,
 		parsedFilters,
+		setParsedFilters,
 		toolTraces,
-		showToolTrace,
-		setShowToolTrace,
-		isStreaming,
+		setToolTraces,
 		requestId,
+		setRequestId,
 		expandedTrails,
 		trailDetails,
-		availableAgents,
-		setAvailableAgents,
-		selectedAgent,
-		setSelectedAgent,
-		handleSubmit,
 		toggleTrailDetails,
+		handleSubmit,
 		cancelStreaming,
+		isStreaming,
 	};
+
+	return (
+		<ResultsContext.Provider value={value}>
+			{children}
+		</ResultsContext.Provider>
+	);
+};
+
+export const useResults = (): ResultsContextType => {
+	const context = useContext(ResultsContext);
+	if (!context) {
+		throw new Error('useResults must be used within a ResultsProvider');
+	}
+	return context;
 };

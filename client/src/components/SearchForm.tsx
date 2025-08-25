@@ -1,136 +1,100 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { Button } from './ui/button';
-import type { SearchFormData } from '../hooks/useTrailSearch';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { searchSchema, type SearchFormData } from '../schemas';
+import { SEARCH_QUERY_MAX_LENGTH } from '../constants/validation';
+import { useSearchState, useResults } from '../contexts';
+import ExampleQueries from './ExampleQueries';
+import AgentSelector from './AgentSelector';
 
-interface SearchFormProps {
-	message: string;
-	setMessage: (message: string) => void;
-	onSubmit: (data: SearchFormData) => void;
-	isStreaming: boolean;
-	showToolTrace: boolean;
-	setShowToolTrace: (show: boolean) => void;
-	availableAgents?: any;
-	selectedAgent: string;
-	setSelectedAgent: (agent: string) => void;
-}
+// Simplified SearchForm without complex sync logic
+const SearchForm: React.FC = () => {
+	const { message, selectedAgent, setMessage, setSelectedAgent } = useSearchState();
+	const { handleSubmit: onSubmit, isStreaming } = useResults();
 
-const SearchForm: React.FC<SearchFormProps> = ({
-	message,
-	setMessage,
-	onSubmit,
-	isStreaming,
-	showToolTrace,
-	availableAgents,
-	selectedAgent,
-	setSelectedAgent,
-}) => {
-	const [query, setQuery] = useState(message);
-	const [error, setError] = useState<string>('');
-
-	// Sync with parent message
-	useEffect(() => {
-		setQuery(message);
-	}, [message]);
-
-	// Validate query
-	const validateQuery = (value: string): string => {
-		if (!value.trim()) {
-			return 'Search query is required';
-		}
-		if (value.trim().length < 3) {
-			return 'Search query must be at least 3 characters long';
-		}
-		if (value.length > 500) {
-			return 'Search query must be less than 500 characters';
-		}
-		return '';
-	};
-
-	const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-		const value = e.target.value;
-		setQuery(value);
-		setMessage(value);
-		setError(validateQuery(value));
-	};
-
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		const validationError = validateQuery(query);
-		if (validationError) {
-			setError(validationError);
-			return;
-		}
-
-		onSubmit({
-			query: query.trim(),
-			showToolTrace,
+	const {
+		control,
+		handleSubmit,
+		formState: { errors },
+		setValue,
+		watch,
+		trigger
+	} = useForm<SearchFormData>({
+		resolver: zodResolver(searchSchema),
+		defaultValues: {
+			query: message || '',
+			showToolTrace: false,
 			agentType: selectedAgent
-		});
-	};
+		},
+		mode: 'onChange'
+	});
 
-	const handleKeyDown = (e: React.KeyboardEvent) => {
+	const watchedQuery = watch('query');
+	const watchedAgentType = watch('agentType');
+
+	// Memoized callbacks to prevent unnecessary re-renders
+	const onFormSubmit = useCallback((data: SearchFormData) => {
+		// Update state only on submit
+		setMessage(data.query);
+		setSelectedAgent(data.agentType);
+		onSubmit(data);
+	}, [onSubmit, setMessage, setSelectedAgent]);
+
+	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
-			handleSubmit(e);
+			handleSubmit(onFormSubmit)();
 		}
-	};
+	}, [handleSubmit, onFormSubmit]);
 
-	const exampleQueries = [
-		"Easy loop trail under 3 miles with lake views near Chicago",
-		"Free trails with parking and restrooms in Illinois",
-		"Paved trails that are wheelchair accessible with no entry fees",
-		"Dog-friendly trails with camping available in state parks",
-		"Trails managed by National Park Service with water fountains",
-		"Moderate trails with picnic areas and year-round access",
-		"Boardwalk trails with beach access and free parking",
-		"Loop trails under 5 miles in Cook County with restrooms",
-		"Hard difficulty trails in Wisconsin state parks",
-		"Trails that cost money but have good amenities near Chicago"
-	];
+	const handleExampleClick = useCallback((example: string) => {
+		setValue('query', example);
+		trigger('query'); // Trigger validation
+	}, [setValue, trigger]);
 
-	const handleExampleClick = (example: string) => {
-		setQuery(example);
-		setMessage(example);
-		setError('');
-	};
-
-	const isValid = query.trim().length >= 3 && query.length <= 500;
+	const isValid = watchedQuery && watchedQuery.trim().length >= 3 && !errors.query;
 
 	return (
 		<div className="mb-12">
 			{/* Main search container */}
 			<div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-8 mb-8">
-				<form onSubmit={handleSubmit}>
+				<form onSubmit={handleSubmit(onFormSubmit)}>
 					<div className="flex flex-col gap-6">
 						<div>
 							<label htmlFor="search-query" className="block text-lg font-semibold text-gray-800 mb-3">
 								🔍 What kind of trail adventure are you looking for?
 							</label>
 							<div className="relative">
-								<textarea
-									id="search-query"
-									value={query}
-									onChange={handleQueryChange}
-									onKeyDown={handleKeyDown}
-									placeholder="Try: Easy loop under 8 miles with waterfall near Chicago, or family-friendly trails with picnic areas..."
-									className={`w-full p-5 border-2 rounded-xl resize-none transition-all duration-200 text-lg leading-relaxed placeholder:text-gray-400 focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none ${error ? 'border-red-400 bg-red-50/50' : 'border-gray-200 bg-white/50 hover:border-gray-300'
-										}`}
-									rows={4}
-									disabled={isStreaming}
-									aria-label="Trail search query"
-									aria-describedby={error ? "search-error" : "search-help"}
-									aria-required="true"
-									role="textbox"
-									aria-invalid={error ? 'true' : 'false'}
+								<Controller
+									name="query"
+									control={control}
+									render={({ field }) => (
+										<textarea
+											{...field}
+											id="search-query"
+											onKeyDown={handleKeyDown}
+											placeholder="Try: Easy loop under 8 miles with waterfall near Chicago, or family-friendly trails with picnic areas..."
+											className={`w-full p-5 border-2 rounded-xl resize-none transition-all duration-200 text-lg leading-relaxed placeholder:text-gray-400 focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none ${errors.query ? 'border-red-400 bg-red-50/50' : 'border-gray-200 bg-white/50 hover:border-gray-300'
+												}`}
+											rows={4}
+											disabled={isStreaming}
+											aria-label="Trail search query"
+											aria-describedby={errors.query ? "search-error" : "search-help"}
+											aria-required="true"
+											role="textbox"
+											aria-invalid={errors.query ? 'true' : 'false'}
+										/>
+									)}
 								/>
 								{/* Character count */}
 								<div className="absolute bottom-3 right-3 text-xs text-gray-400">
-									{query.length}/500
+									{watchedQuery?.length || 0}/{SEARCH_QUERY_MAX_LENGTH}
 								</div>
 							</div>
-							{error && (
+							{errors.query && (
 								<div id="search-error" className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg border border-red-200" role="alert">
-									⚠️ {error}
+									⚠️ {errors.query.message}
 								</div>
 							)}
 							<div id="search-help" className="sr-only">
@@ -139,27 +103,11 @@ const SearchForm: React.FC<SearchFormProps> = ({
 						</div>
 
 						{/* Agent Selection */}
-						<div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl border border-gray-200">
-							<div className="flex items-center gap-4">
-								<label htmlFor="agent-select" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-									🤖 AI Assistant:
-								</label>
-								<select
-									id="agent-select"
-									value={selectedAgent}
-									onChange={(e) => setSelectedAgent(e.target.value)}
-									disabled={isStreaming}
-									className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none disabled:opacity-50 transition-all duration-200"
-									aria-label="Select AI agent type"
-								>
-									<option value="custom">⚡ Custom Agent</option>
-									<option value="langchain">🧠 LangChain Agent</option>
-								</select>
-							</div>
-							<div className="text-xs text-gray-600 max-w-xs">
-								{selectedAgent === 'custom' ? '⚡ Fast, direct OpenAI implementation' : '🧠 Framework-based with memory'}
-							</div>
-						</div>
+						<AgentSelector
+							control={control}
+							isStreaming={isStreaming}
+							watchedAgentType={watchedAgentType}
+						/>
 
 						<div className="w-full">
 							<Button
@@ -191,35 +139,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
 			</div>
 
 			{/* Example queries section */}
-			<div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-2xl p-6 border border-emerald-100">
-				<h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-					💡 Popular Trail Searches
-				</h3>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-					{exampleQueries.map((example, index) => (
-						<button
-							key={index}
-							type="button"
-							onClick={() => handleExampleClick(example)}
-							disabled={isStreaming}
-							className="group px-4 py-3 text-sm text-left bg-white/80 hover:bg-white hover:shadow-md text-gray-700 rounded-xl border border-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:border-emerald-300"
-							aria-label={`Use example query: ${example}`}
-						>
-							<div className="flex items-start gap-2">
-								<span className="text-emerald-500 group-hover:text-emerald-600 transition-colors duration-200 mt-0.5">
-									🥾
-								</span>
-								<span className="leading-relaxed group-hover:text-gray-900 transition-colors duration-200">
-									{example}
-								</span>
-							</div>
-						</button>
-					))}
-				</div>
-				<p className="text-xs text-gray-600 mt-4 text-center">
-					Click any example to get started, or write your own custom search above
-				</p>
-			</div>
+			<ExampleQueries onExampleClick={handleExampleClick} disabled={isStreaming} />
 		</div>
 	);
 };

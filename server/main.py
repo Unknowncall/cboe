@@ -36,9 +36,18 @@ from search import trail_searcher
 from agent_factory import get_agent, get_available_agents, AgentType
 from utils import generate_request_id, log_request, PerformanceTimer
 
+# Rate limiting
+try:
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+    RATE_LIMITING_AVAILABLE = True
+except ImportError:
+    RATE_LIMITING_AVAILABLE = False
+
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
     """Middleware to limit request size for security"""
-    def __init__(self, app, max_size: int = 1024):  # 1KB limit for search requests
+    def __init__(self, app, max_size: int = 10240):  # 10KB limit for search requests
         super().__init__(app)
         self.max_size = max_size
     
@@ -49,8 +58,30 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                 raise HTTPException(status_code=413, detail="Request payload too large")
         return await call_next(request)
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware to add security headers"""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Add security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
+        
+        return response
+
 # Setup logging
 logger = setup_logging()
+
+# Setup rate limiting if available
+if RATE_LIMITING_AVAILABLE:
+    limiter = Limiter(key_func=get_remote_address)
+    logger.info("Rate limiting enabled")
+else:
+    limiter = None
+    logger.warning("slowapi not available - rate limiting disabled")
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -70,6 +101,9 @@ app.add_middleware(
 
 # Add request size limit middleware for security
 app.add_middleware(RequestSizeLimitMiddleware, max_size=MAX_REQUEST_SIZE)
+
+# Add security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Mount static files for serving the React frontend
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -111,7 +145,7 @@ async def general_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content=ErrorResponse(
             error="Internal server error",
-            detail=str(exc),
+            detail="An unexpected error occurred",
             request_id=request.headers.get("X-Request-ID"),
             timestamp=datetime.utcnow().isoformat()
         ).model_dump()
@@ -249,13 +283,21 @@ async def health_check():
     logger.info(f"Health check requested (Request: {request_id})")
     
     try:
-        # Test database connectivity
-        trail_count = db_manager.get_trail_count(request_id)
+        # Test database connectivity with timeout
+        import asyncio
+        trail_count = await asyncio.wait_for(
+            asyncio.to_thread(db_manager.get_trail_count, request_id),
+            timeout=5.0
+        )
         status = "healthy"
         message = f"Trail search server is running with {trail_count} trails available"
         
         logger.info(f"Health check passed: {trail_count} trails (Request: {request_id})")
         
+    except asyncio.TimeoutError:
+        status = "unhealthy"
+        message = "Database connection timeout"
+        logger.error(f"Health check failed: database timeout (Request: {request_id})")
     except Exception as e:
         status = "unhealthy"
         message = f"Database connection failed: {str(e)}"
@@ -288,34 +330,19 @@ async def chat_stream(request: ChatRequest):
     logger.info(f"DEBUG: ChatRequest.agent_type = '{request.agent_type}' (type: {type(request.agent_type)})")
     logger.info(f"DEBUG: Full request object: {request.model_dump()}")
     
-    def generate():
-        """Generator function for streaming response"""
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    async def generate():
+        """Async generator function for streaming response"""
         try:
-            async def async_gen():
-                async for chunk in generate_stream_response(request_id, request.message, request.agent_type):
-                    yield chunk
-            
-            # Run the async generator in the event loop
-            gen = async_gen()
-            while True:
-                try:
-                    chunk = loop.run_until_complete(gen.__anext__())
-                    yield chunk
-                except StopAsyncIteration:
-                    break
+            async for chunk in generate_stream_response(request_id, request.message, request.agent_type):
+                yield chunk
         except Exception as e:
             logger.error(f"Stream generation failed: {e} (Request: {request_id})")
             error_response = json.dumps({
                 'type': 'error',
-                'content': f'Internal server error: {str(e)}',
+                'content': 'Internal server error occurred',
                 'request_id': request_id
             })
             yield f"data: {error_response}\n\n"
-        finally:
-            loop.close()
     
     return StreamingResponse(
         generate(),
@@ -323,7 +350,6 @@ async def chat_stream(request: ChatRequest):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Access-Control-Allow-Origin": "*",
             "X-Request-ID": request_id,
         }
     )

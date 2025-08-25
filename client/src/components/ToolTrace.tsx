@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import type { ToolTrace } from '../types';
+import { useSearchState, useResults } from '../contexts';
 
-interface ToolTraceProps {
-	toolTraces: ToolTrace[];
-	showToolTrace: boolean;
-}
-
-const ToolTrace: React.FC<ToolTraceProps> = ({ toolTraces, showToolTrace }) => {
+const ToolTrace: React.FC = () => {
+	const { showToolTrace } = useSearchState();
+	const { toolTraces } = useResults();
 	const [expandedTraces, setExpandedTraces] = useState<Set<number>>(new Set());
 
 	if (!showToolTrace || toolTraces.length === 0) {

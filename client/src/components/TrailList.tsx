@@ -1,17 +1,12 @@
 import React, { memo } from 'react';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { MapPin, Mountain, Route, Dog, Car, Droplets, TreePine, Info, ExternalLink, Phone } from 'lucide-react';
-import type { Trail } from '../types';
+import { MapPin, Mountain, Route, Dog, TreePine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useResults } from '../contexts';
 
-interface TrailListProps {
-	trails: Trail[];
-}
-
-const TrailList: React.FC<TrailListProps> = memo(({
-	trails,
-}) => {
+const TrailList: React.FC = memo(() => {
+	const { trails } = useResults();
 	const getDifficultyColor = (difficulty: string) => {
 		switch (difficulty.toLowerCase()) {
 			case 'easy': return 'bg-green-50 text-green-700 border-green-200';
@@ -163,9 +158,9 @@ const TrailList: React.FC<TrailListProps> = memo(({
 												{/* Features */}
 												<div>
 													<div className="flex flex-wrap gap-2">
-														{trail.features.slice(0, 4).map(feature => (
+														{trail.features.slice(0, 4).map((feature, index) => (
 															<Badge
-																key={feature}
+																key={`${trail.id}-feature-${index}-${feature}`}
 																variant="outline"
 																className={`text-xs font-medium border-2 ${getFeatureColor(feature)}`}
 															>

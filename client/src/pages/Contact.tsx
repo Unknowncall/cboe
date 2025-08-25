@@ -1,38 +1,46 @@
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, MessageSquare, MapPin, Clock, Send, CheckCircle } from 'lucide-react';
+import { contactSchema, type ContactFormData } from '../schemas';
 
 const Contact: React.FC = () => {
-	const [formData, setFormData] = useState({
-		name: '',
-		email: '',
-		subject: '',
-		message: ''
-	});
 	const [isSubmitted, setIsSubmitted] = useState(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		// Here you would typically send the form data to your backend
-		console.log('Form submitted:', formData);
-		setIsSubmitted(true);
+	const {
+		register,
+		handleSubmit,
+		formState: { errors },
+		reset
+	} = useForm<ContactFormData>({
+		resolver: zodResolver(contactSchema),
+		mode: 'onChange' // Validate on change for better UX
+	});
 
-		// Reset form after a delay
-		setTimeout(() => {
-			setIsSubmitted(false);
-			setFormData({
-				name: '',
-				email: '',
-				subject: '',
-				message: ''
-			});
-		}, 3000);
-	};
+	const onSubmit = async (data: ContactFormData) => {
+		setIsSubmitting(true);
 
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-		setFormData({
-			...formData,
-			[e.target.name]: e.target.value
-		});
+		try {
+			// Here you would typically send the form data to your backend
+			console.log('Form submitted:', data);
+
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 1000));
+
+			setIsSubmitted(true);
+			reset(); // Reset form after successful submission
+
+			// Reset success message after a delay
+			setTimeout(() => {
+				setIsSubmitted(false);
+			}, 5000);
+		} catch (error) {
+			console.error('Error submitting form:', error);
+			// Handle error state here
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
 
 	return (
@@ -116,7 +124,7 @@ const Contact: React.FC = () => {
 					{/* Contact Form */}
 					<div className="bg-white rounded-2xl p-8 shadow-lg">
 						{!isSubmitted ? (
-							<form onSubmit={handleSubmit} className="space-y-6">
+							<form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 								<h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
 
 								<div className="grid sm:grid-cols-2 gap-4">
@@ -127,13 +135,16 @@ const Contact: React.FC = () => {
 										<input
 											type="text"
 											id="name"
-											name="name"
-											required
-											value={formData.name}
-											onChange={handleChange}
-											className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+											{...register('name')}
+											className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 transition-colors ${errors.name
+													? 'border-red-300 focus:border-red-500'
+													: 'border-gray-300 focus:border-emerald-500'
+												}`}
 											placeholder="Your name"
 										/>
+										{errors.name && (
+											<p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+										)}
 									</div>
 
 									<div>
@@ -143,13 +154,16 @@ const Contact: React.FC = () => {
 										<input
 											type="email"
 											id="email"
-											name="email"
-											required
-											value={formData.email}
-											onChange={handleChange}
-											className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+											{...register('email')}
+											className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 transition-colors ${errors.email
+													? 'border-red-300 focus:border-red-500'
+													: 'border-gray-300 focus:border-emerald-500'
+												}`}
 											placeholder="your@email.com"
 										/>
+										{errors.email && (
+											<p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+										)}
 									</div>
 								</div>
 
@@ -159,11 +173,11 @@ const Contact: React.FC = () => {
 									</label>
 									<select
 										id="subject"
-										name="subject"
-										required
-										value={formData.subject}
-										onChange={handleChange}
-										className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+										{...register('subject')}
+										className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 transition-colors ${errors.subject
+												? 'border-red-300 focus:border-red-500'
+												: 'border-gray-300 focus:border-emerald-500'
+											}`}
 									>
 										<option value="">Select a topic</option>
 										<option value="general">General Question</option>
@@ -173,6 +187,9 @@ const Contact: React.FC = () => {
 										<option value="partnership">Partnership/Business</option>
 										<option value="other">Other</option>
 									</select>
+									{errors.subject && (
+										<p className="mt-1 text-sm text-red-600">{errors.subject.message}</p>
+									)}
 								</div>
 
 								<div>
@@ -181,22 +198,38 @@ const Contact: React.FC = () => {
 									</label>
 									<textarea
 										id="message"
-										name="message"
-										required
-										value={formData.message}
-										onChange={handleChange}
+										{...register('message')}
 										rows={5}
-										className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+										className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 transition-colors ${errors.message
+												? 'border-red-300 focus:border-red-500'
+												: 'border-gray-300 focus:border-emerald-500'
+											}`}
 										placeholder="Tell us how we can help..."
 									/>
+									{errors.message && (
+										<p className="mt-1 text-sm text-red-600">{errors.message.message}</p>
+									)}
 								</div>
 
 								<button
 									type="submit"
-									className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:from-emerald-700 hover:to-blue-700 transition-all duration-200 flex items-center justify-center space-x-2"
+									disabled={isSubmitting}
+									className={`w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${isSubmitting
+											? 'bg-gray-400 cursor-not-allowed'
+											: 'bg-gradient-to-r from-emerald-600 to-blue-600 text-white hover:from-emerald-700 hover:to-blue-700'
+										}`}
 								>
-									<Send className="h-5 w-5" />
-									<span>Send Message</span>
+									{isSubmitting ? (
+										<>
+											<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+											<span>Sending...</span>
+										</>
+									) : (
+										<>
+											<Send className="h-5 w-5" />
+											<span>Send Message</span>
+										</>
+									)}
 								</button>
 							</form>
 						) : (

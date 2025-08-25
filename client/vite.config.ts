@@ -18,4 +18,25 @@ export default defineConfig({
 			},
 		},
 	},
+	build: {
+		rollupOptions: {
+			output: {
+				manualChunks: {
+					// Vendor libraries
+					vendor: ['react', 'react-dom'],
+					router: ['react-router-dom'],
+					forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+					ui: ['@radix-ui/react-slot', 'class-variance-authority', 'clsx', 'tailwind-merge'],
+					icons: ['lucide-react'],
+					utils: ['dompurify']
+				}
+			}
+		},
+		// Enable source maps for better debugging
+		sourcemap: true,
+		// Target modern browsers for smaller bundles
+		target: 'esnext',
+		// Optimize chunk size
+		chunkSizeWarningLimit: 1600
+	},
 })

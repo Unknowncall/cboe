@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Mountain, Menu, X, Search, Info, HelpCircle, Mail, Home } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Navbar: React.FC = () => {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -52,13 +53,12 @@ const Navbar: React.FC = () => {
 								<Link
 									key={item.name}
 									to={item.href}
-									className={`
-                    flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                    ${isActive
-											? 'bg-emerald-100 text-emerald-700 shadow-sm'
-											: 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
-										}
-                  `}
+									className={cn(
+										"flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+										isActive
+											? "bg-emerald-100 text-emerald-700 shadow-sm"
+											: "text-gray-700 hover:bg-emerald-50 hover:text-emerald-600"
+									)}
 								>
 									<IconComponent className="h-4 w-4" />
 									<span>{item.name}</span>
@@ -96,13 +96,12 @@ const Navbar: React.FC = () => {
 									key={item.name}
 									to={item.href}
 									onClick={() => setIsMenuOpen(false)}
-									className={`
-                    flex items-center space-x-3 px-3 py-3 rounded-lg text-base font-medium transition-all duration-200
-                    ${isActive
-											? 'bg-emerald-100 text-emerald-700'
-											: 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
-										}
-                  `}
+									className={cn(
+										"flex items-center space-x-3 px-3 py-3 rounded-lg text-base font-medium transition-all duration-200",
+										isActive
+											? "bg-emerald-100 text-emerald-700"
+											: "text-gray-700 hover:bg-emerald-50 hover:text-emerald-600"
+									)}
 								>
 									<IconComponent className="h-5 w-5" />
 									<span>{item.name}</span>
