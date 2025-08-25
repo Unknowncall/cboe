@@ -29,7 +29,7 @@ CBOE Trail Search is a modern full-stack application that helps users discover h
 
 1. **Clone and install dependencies**
    ```bash
-   git clone <repository-url>
+   git clone git@github.com:Unknowncall/cboe.git
    cd cboe
    npm run install:all
    ```
