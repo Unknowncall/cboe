@@ -90,8 +90,6 @@ docker run -d \
 Once running, the application will be available at:
 
 - **Main Application**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
 
 ## Docker Management Script Commands
 

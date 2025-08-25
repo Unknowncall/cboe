@@ -66,3 +66,6 @@ yarn-error.log*
 htmlcov/
 .coverage
 .pytest_cache/
+server/trails.db-shm
+.gitignore
+server/trails.db-wal
