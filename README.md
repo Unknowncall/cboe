@@ -2,9 +2,19 @@
 
 AI-powered trail discovery platform with intelligent search and recommendations.
 
+## 🚀 Quick Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Unknowncall/cboe)
+
+*Just add your OpenAI API key and deploy!*
+
+See [DEPLOY.md](DEPLOY.md) for detailed Vercel deployment instructions.
+
 ## Overview
 
 CBOE Trail Search is a modern full-stack application that helps users discover hiking trails through intelligent search capabilities. Built with FastAPI and React, it combines traditional filtering with AI-powered recommendations to provide personalized trail suggestions based on user preferences and natural language queries.
+
+**🆕 Now deployable to Vercel with serverless functions!**
 
 ## Features
 
@@ -14,12 +24,27 @@ CBOE Trail Search is a modern full-stack application that helps users discover h
 • **Responsive Design** - Mobile-first interface built with Tailwind CSS and shadcn/ui
 • **Interactive Documentation** - Auto-generated API docs with Swagger UI
 • **Type Safety** - Full TypeScript implementation with Pydantic validation
+• **Serverless Ready** - Deploy instantly to Vercel with zero configuration
 
 ## Tech Stack
 
 **Backend:** Python, FastAPI, SQLite, LangChain, OpenAI, Pydantic  
 **Frontend:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui  
-**Tools:** Docker, Vitest, ESLint, Rate Limiting
+**Deployment:** Vercel, Docker  
+**Tools:** Vitest, ESLint, Rate Limiting
+
+## Deployment Options
+
+### 🌟 Vercel (Recommended)
+- **Instant deployment** with serverless functions
+- **Zero configuration** required
+- **Automatic scaling** and global CDN
+- See [DEPLOY.md](DEPLOY.md) for details
+
+### 🐳 Docker
+- **Full control** over deployment environment
+- **Streaming responses** supported
+- See [DOCKER.md](DOCKER.md) for details
 
 ---
 
