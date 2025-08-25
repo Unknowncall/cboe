@@ -1,7 +1,7 @@
 {
 	"name": "cboe",
 	"version": "1.0.0",
-	"description": "CBOE full-stack application with Python FastAPI backend and React frontend",
+	"description": "CBOE full-stack application with Python FastAPI backend and React frontend, deployable to Vercel",
 	"scripts": {
 		"dev": "concurrently \"npm run server\" \"npm run client\"",
 		"server": "cd server && source venv/bin/activate && python main.py",
@@ -10,7 +10,10 @@
 		"install:client": "cd client && npm install",
 		"install:all": "npm run install:server && npm run install:client",
 		"build:client": "cd client && npm run build",
-		"start:prod": "concurrently \"cd server && source venv/bin/activate && python main.py\" \"cd client && npm run preview\""
+		"build": "npm run build:client",
+		"setup:db": "python setup_db.py",
+		"start:prod": "concurrently \"cd server && source venv/bin/activate && python main.py\" \"cd client && npm run preview\"",
+		"vercel-build": "npm run build:client"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.1.12",
@@ -21,7 +24,9 @@
 		"react",
 		"vite",
 		"tailwind",
-		"shadcn"
+		"shadcn",
+		"vercel",
+		"serverless"
 	],
 	"author": "",
 	"license": "MIT"

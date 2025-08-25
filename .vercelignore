@@ -1,0 +1,58 @@
+# Vercel ignore patterns
+
+# Server directory (not needed for Vercel deployment)
+server/
+
+# Development files
+.env
+.env.local
+.env.development
+.env.production
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+venv.bak/
+
+# Docker files
+Dockerfile
+docker-compose.yml
+docker.sh
+.dockerignore
+
+# Development logs
+*.log
+trail_search.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Test files
+**/test/
+**/__tests__/
+*.test.*
+*.spec.*
+
+# Coverage reports
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Documentation (not needed for deployment)
+docs/
+DOCKER.md
+TECHNICAL_OVERVIEW.md
+AI_USE_DOCUMENTATION.md

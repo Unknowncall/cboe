@@ -112,7 +112,7 @@ export class TrailApiService {
 		throw lastError || new ApiNetworkError();
 	}
 
-	// Streaming search with proper error handling
+	// Search with support for both streaming and non-streaming responses
 	async searchTrails(
 		query: string,
 		agentType: string,
@@ -141,39 +141,64 @@ export class TrailApiService {
 				throw new ApiError(`HTTP ${response.status}: ${response.statusText}`);
 			}
 
-			if (!response.body) {
-				throw new Error('No response body');
-			}
+			// Check if this is a streaming response or a JSON response
+			const contentType = response.headers.get('content-type');
+			
+			if (contentType?.includes('text/plain') || contentType?.includes('text/event-stream')) {
+				// Handle streaming response (original behavior)
+				if (!response.body) {
+					throw new Error('No response body');
+				}
 
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
+				const reader = response.body.getReader();
+				const decoder = new TextDecoder();
 
-			let iterations = 0;
-			const MAX_ITERATIONS = 1000;
+				let iterations = 0;
+				const MAX_ITERATIONS = 1000;
 
-			while (iterations < MAX_ITERATIONS) {
-				const { done, value } = await reader.read();
-				if (done) break;
-				iterations++;
+				while (iterations < MAX_ITERATIONS) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					iterations++;
 
-				const chunk = decoder.decode(value);
-				const lines = chunk.split('\n');
+					const chunk = decoder.decode(value);
+					const lines = chunk.split('\n');
 
-				for (const line of lines) {
-					if (line.startsWith('data: ')) {
-						try {
-							const data: StreamEvent = JSON.parse(line.substring(6));
-							onData?.(data);
-						} catch (parseError) {
-							console.error('Failed to parse SSE data:', parseError, 'Raw line:', line);
-							continue;
+					for (const line of lines) {
+						if (line.startsWith('data: ')) {
+							try {
+								const data: StreamEvent = JSON.parse(line.substring(6));
+								onData?.(data);
+							} catch (parseError) {
+								console.error('Failed to parse SSE data:', parseError, 'Raw line:', line);
+								continue;
+							}
 						}
 					}
 				}
-			}
 
-			if (iterations >= MAX_ITERATIONS) {
-				throw new Error('Stream processing exceeded maximum iterations');
+				if (iterations >= MAX_ITERATIONS) {
+					throw new Error('Stream processing exceeded maximum iterations');
+				}
+			} else {
+				// Handle JSON response (Vercel serverless mode)
+				const data = await response.json();
+				
+				// Simulate streaming by sending events in sequence
+				if (data.content) {
+					// Send content as tokens
+					const words = data.content.split(' ');
+					for (let i = 0; i < words.length; i++) {
+						await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for UX
+						onData?.({
+							type: 'token',
+							content: words[i] + (i < words.length - 1 ? ' ' : '')
+						});
+					}
+				}
+				
+				// Send final results
+				onData?.(data);
 			}
 		} catch (error) {
 			clearTimeout(timeoutId);
